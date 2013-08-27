@@ -1,3 +1,7 @@
+"""
+This module is used to estimate the cost of various compounds. Costs are taken from the accompanying CSV file in the format of (formula, cost/kg, name, reference). For compounds with no cost listed, a Phase Diagram style convex hull optimization is performed to determine a set of compositions that can be mixed to give the desired compound with lowest total cost.
+"""
+
 from collections import defaultdict
 import csv
 import os
@@ -18,9 +22,24 @@ __date__ = 'Aug 27, 2013'
 
 
 class CostEntry(PDEntry):
+    """
+    Extends PDEntry to include a BibTeX reference and include language about cost
+    """
 
-    def __init__(self, composition, energy, name, reference):
-        super(CostEntry, self).__init__(composition, energy, name)
+    def __init__(self, composition, cost, name, reference):
+        """
+        Args:
+            composition:
+                Composition as a pymatgen.core.structure.Composition
+            cost:
+                Cost (per mol, NOT per kg) of the full Composition
+            name:
+                Optional parameter to name the entry. Defaults to the reduced
+                chemical formula.
+            reference:
+                Reference data as BiBTeX string
+        """
+        super(CostEntry, self).__init__(composition, cost, name)
         if reference and not is_valid_bibtex(reference):
             raise ValueError("Invalid format for cost reference! Should be BibTeX string.")
         self.reference = reference
@@ -32,12 +51,12 @@ class CostEntry(PDEntry):
 @singleton
 class CostDB(object):
     """
+    Singleton object that stores the cost data and provides functions for analyzing cost
     """
 
     def __init__(self):
         """ Implementation of the singleton interface """
         self._chemsys_entries = defaultdict(list)
-        self._comp_energies = {}
         filename = os.path.join(os.path.dirname(__file__), "cost_db.csv")
         reader = csv.reader(open(filename, "rb"))
         for row in reader:
@@ -46,16 +65,28 @@ class CostDB(object):
             pde = CostEntry(comp.formula, cost_per_mol, row[2], row[3])
             chemsys = "-".join([el.symbol for el in pde.composition.elements])
             self._chemsys_entries[chemsys].append(pde)
-            self._comp_energies[comp.reduced_formula] = min(pde.energy_per_atom, self._comp_energies.get(comp.reduced_formula, float('inf')))
 
-            print self._comp_energies
+    def get_lowest_decomposition(self, composition, override_known=True):
+        """
+        Get the decomposition leading to lowest cost
 
-    def get_cost_per_mol(self, composition):
+        Args:
+            composition:
+                Composition as a pymatgen.core.structure.Composition
+            override_known:
+                If the cost for the Composition is listed explicitly, don't minimize cost
+        Returns:
+            Decomposition as a dict of {Entry: amount}
+        """
+
         # first check if cost is explicitly defined for this composition
-        if composition.reduced_formula in self._comp_energies:
-            return self._comp_energies[composition.reduced_formula] * composition.num_atoms
+        if override_known:
+            chemsys = "-".join([el.symbol for el in composition.elements])
+            for entry in self._chemsys_entries[chemsys]:
+                if entry.composition.reduced_formula == composition.reduced_formula:
+                    return {entry: 1}
 
-        # otherwise create a phase diagram to get lowest cost
+        # otherwise minimize cost via a convex hull analysis
         entries_list = []
         elements = [e.symbol for e in composition.elements]
         for i in range(len(elements)):
@@ -64,16 +95,41 @@ class CostDB(object):
                 entries_list.extend(self._chemsys_entries[chemsys])
 
         pd = PhaseDiagram(entries_list)
-        pda = PDAnalyzer(pd)
+        return PDAnalyzer(pd).get_decomposition(composition)
 
-        return sum(k.energy*v*composition.num_atoms for k, v in pda.get_decomposition(composition).iteritems())
 
-    def get_cost_per_kg(self, comp):
+    def get_cost_per_mol(self, composition, override_known=True):
+        """
+        Get best estimate of minimum cost/mol based on known data
+
+        Args:
+            composition:
+                Composition as a pymatgen.core.structure.Composition
+            override_known:
+                If the cost for the Composition is listed explicitly, don't minimize cost
+        Returns:
+            float of cost/mol
+        """
+
+        decomp = self.get_lowest_decomposition(composition, override_known)
+        return sum(k.energy*v*composition.num_atoms for k, v in decomp.iteritems())
+
+    def get_cost_per_kg(self, comp, override_known=True):
+        """
+        Get best estimate of minimum cost/kg based on known data
+
+        Args:
+            composition:
+                Composition as a pymatgen.core.structure.Composition
+            override_known:
+                If the cost for the Composition is listed explicitly, don't minimize cost
+        Returns:
+            float of cost/kg
+        """
         return self.get_cost_per_mol(comp)/(comp.weight * AMU_TO_KG * AVOGADROS_CONST)
-
 
 
 if __name__ == "__main__":
     cdb = CostDB()
-    print cdb.get_cost_per_mol(Composition.from_formula("LiFeO2"))
-    print cdb.get_cost_per_kg(Composition.from_formula("LiFeO2"))
+    print cdb.get_cost_per_mol(Composition.from_formula("H2"))
+    print cdb.get_cost_per_kg(Composition.from_formula("H2"))
