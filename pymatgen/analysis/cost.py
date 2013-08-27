@@ -70,8 +70,8 @@ class CostDB(object):
         reader = csv.reader(open(filename, "rb"), quotechar="|")
         for row in reader:
             comp = Composition.from_formula(row[0])
-            cost_per_mol = float(
-                row[1]) * comp.weight * AMU_TO_KG * AVOGADROS_CONST
+            cost_per_mol = float(row[1]) * comp.weight * \
+                AMU_TO_KG * AVOGADROS_CONST
             pde = CostEntry(comp.formula, cost_per_mol, row[2], row[3])
             chemsys = "-".join([el.symbol for el in pde.composition.elements])
             self._chemsys_entries[chemsys].append(pde)
