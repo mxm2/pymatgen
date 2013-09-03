@@ -11,8 +11,8 @@ from collections import defaultdict
 import csv
 import os
 import itertools
-from pymatgen import Composition, singleton
-from pymatgen.core.physical_constants import AVOGADROS_CONST, AMU_TO_KG
+from pymatgen import Composition, singleton, Mass
+from pymatgen.core.physical_constants import AVOGADROS_CONST
 from pymatgen.matproj.snl import is_valid_bibtex
 from pymatgen.phasediagram.entries import PDEntry
 from pymatgen.phasediagram.pdanalyzer import PDAnalyzer
@@ -25,6 +25,8 @@ __maintainer__ = 'Anubhav Jain'
 __email__ = 'ajain@lbl.gov'
 __date__ = 'Aug 27, 2013'
 
+
+AMU_TO_KG = Mass(1, "amu").to("kg")
 
 class CostEntry(PDEntry):
     """
