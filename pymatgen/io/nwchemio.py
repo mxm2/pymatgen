@@ -13,14 +13,14 @@ __maintainer__ = "Shyue Ping Ong"
 __email__ = "shyuep@gmail.com"
 __date__ = "6/5/13"
 
-
 import re
 from string import Template
 
 from pymatgen.core import Molecule
-import pymatgen.core.physical_constants as phyc
 from pymatgen.util.io_utils import zopen
 from pymatgen.serializers.json_coders import MSONable
+from pymatgen.core.units import Energy
+import pymatgen.core.physical_constants as phyc
 
 
 class NwTask(MSONable):
@@ -31,6 +31,7 @@ class NwTask(MSONable):
     theories = {"g3gn": "some description",
                 "scf": "Hartree-Fock",
                 "dft": "DFT",
+                "esp": "ESP",
                 "sodft": "Spin-Orbit DFT",
                 "mp2": "MP2 using a semi-direct algorithm",
                 "direct_mp2": "MP2 using a full-direct algorithm",
@@ -64,7 +65,8 @@ class NwTask(MSONable):
                   "dynamics": "Perform classical molecular dynamics.",
                   "thermodynamics": "Perform multi-configuration "
                                     "thermodynamic integration using "
-                                    "classical MD."}
+                                    "classical MD.",
+                  "": "dummy"}
 
     def __init__(self, charge, spin_multiplicity, basis_set,
                  title=None, theory="dft", operation="optimize",
@@ -124,11 +126,10 @@ class NwTask(MSONable):
             bset_spec.append(" {} library \"{}\"".format(el, bset))
 
         theory_spec = []
-        if self.theory_directives:
-            theory_spec.append("{}".format(self.theory))
-            for k, v in self.theory_directives.items():
-                theory_spec.append(" {} {}".format(k, v))
-            theory_spec.append("end")
+        theory_spec.append("{}".format(self.theory))
+        for k, v in self.theory_directives.items():
+            theory_spec.append(" {} {}".format(k, v))
+        theory_spec.append("end")
 
         t = Template("""title "$title"
 charge $charge
@@ -143,6 +144,7 @@ task $theory $operation""")
             bset_spec="\n".join(bset_spec),
             theory_spec="\n".join(theory_spec),
             theory=self.theory, operation=self.operation)
+
 
     @property
     def to_dict(self):
@@ -163,8 +165,8 @@ task $theory $operation""")
                       theory_directives=d["theory_directives"])
 
     @classmethod
-    def from_molecule(cls, mol, charge=None, spin_multiplicity=None,
-                      basis_set="6-31g", title=None, theory="scf",
+    def from_molecule(cls, mol, theory, charge=None, spin_multiplicity=None,
+                      basis_set="6-31g", title=None,
                       operation="optimize", theory_directives=None):
         """
         Very flexible arguments to support many types of potential setups.
@@ -228,15 +230,20 @@ task $theory $operation""")
 
 
     @classmethod
-    def dft_task(cls, mol, xc="b3lyp", **kwargs):
+    def dft_task(cls, mol, xc="b3lyp", dielectric="78", **kwargs):
         """
-        A class method for quickly creating DFT tasks.
+        A class method for quickly creating DFT tasks with optional
+        cosmo parameter .
 
         Args:
             mol:
                 Input molecule
             xc:
                 Exchange correlation to use.
+
+            dielectric:
+                Using water dielectric
+
             \*\*kwargs:
                 Any of the other kwargs supported by NwTask. Note the theory
                 is always "dft" for a dft task.
@@ -245,6 +252,24 @@ task $theory $operation""")
         t.theory_directives.update({"xc": xc,
                                     "mult": t.spin_multiplicity})
         return t
+
+    @classmethod
+    def esp_task(cls, mol, xc="b3lyp", **kwargs):
+        """
+        A class method for quickly creating ESP tasks with RESP
+        charge fitting.
+
+        Args:
+            mol:
+                Input molecule
+            \*\*kwargs:
+                Any of the other kwargs supported by NwTask. Note the theory
+                is always "dft" for a dft task.
+        """
+        e = NwTask.from_molecule(mol, operation="", theory="esp", **kwargs)
+        e.theory_directives.update({"restrain": "harmonic 0.001"})
+
+        return e
 
 
 class NwInput(MSONable):
@@ -502,7 +527,7 @@ class NwOutput(object):
             else:
                 m = energy_patt.search(l)
                 if m:
-                    energies.append(float(m.group(1)) * phyc.Ha_eV)
+                    energies.append(Energy(m.group(1), "Ha").to("eV"))
                     continue
 
                 m = preamble_patt.search(l)
@@ -523,7 +548,7 @@ class NwOutput(object):
                     m = corrections_patt.search(l)
                     if m:
                         corrections[m.group(1)] = float(m.group(2)) / \
-                            phyc.EV_PER_ATOM_TO_KJ_PER_MOL
+                                                  phyc.EV_PER_ATOM_TO_KJ_PER_MOL
 
         data.update({"job_type": job_type, "energies": energies,
                      "corrections": corrections,
