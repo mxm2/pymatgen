@@ -108,8 +108,11 @@ class CostDB(object):
                 chemsys = "-".join(sorted(combi))
                 entries_list.extend(self._chemsys_entries[chemsys])
 
-        pd = PhaseDiagram(entries_list)
-        return PDAnalyzer(pd).get_decomposition(composition)
+        try:
+            pd = PhaseDiagram(entries_list)
+            return PDAnalyzer(pd).get_decomposition(composition)
+        except IndexError:
+            raise ValueError("Error during PD building; most likely, cost data does not exist!")
 
     def get_cost_per_mol(self, composition, override_known=True):
         """
@@ -144,3 +147,7 @@ class CostDB(object):
         """
         return self.get_cost_per_mol(comp, override_known) / \
             (comp.weight * AMU_TO_KG * AVOGADROS_CONST)
+
+if __name__ == "__main__":
+    cdb = CostDB()
+    print cdb.get_cost_per_kg(Composition.from_formula("LiFeO2"))
