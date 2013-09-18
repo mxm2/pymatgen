@@ -11,12 +11,13 @@ from collections import defaultdict
 import csv
 import os
 import itertools
-from pymatgen import Composition, singleton, Mass
+from pymatgen import Composition, Mass
 from pymatgen.core.physical_constants import AVOGADROS_CONST
 from pymatgen.matproj.snl import is_valid_bibtex
 from pymatgen.phasediagram.entries import PDEntry
 from pymatgen.phasediagram.pdanalyzer import PDAnalyzer
 from pymatgen.phasediagram.pdmaker import PhaseDiagram
+from pymatgen.util.decorators import singleton
 
 __author__ = 'Anubhav Jain'
 __copyright__ = 'Copyright 2013, The Materials Project'
