@@ -37,10 +37,39 @@ class MITMPVaspInputSetTest(unittest.TestCase):
             {"NBANDS": 50}, mode="Uniform")
         self.mpnscfparamsetl = MPNonSCFVaspInputSet(
             {"NBANDS": 60}, mode="Line")
+        
+    def test_get_poscar(self):
+        coords = list()
+        coords.append([0, 0, 0])
+        coords.append([0.75, 0.5, 0.75])
+        lattice = Lattice([[3.8401979337, 0.00, 0.00],
+                           [1.9200989668, 3.3257101909, 0.00],
+                           [0.00, -2.2171384943, 3.1355090603]])
+        struct = Structure(lattice, ["Fe", "Mn"], coords)
+        
+        s_unsorted = self.mitparamset_unsorted.get_poscar(struct).structure
+        s_sorted = self.mitparamset.get_poscar(struct).structure
+        
+        self.assertEqual(s_unsorted[0].specie.symbol, 'Fe')
+        self.assertEqual(s_sorted[0].specie.symbol, 'Mn')
+        
 
     def test_get_potcar_symbols(self):
-        syms = self.paramset.get_potcar_symbols(self.struct)
+        coords = list()
+        coords.append([0, 0, 0])
+        coords.append([0.75, 0.5, 0.75])
+        coords.append([0.75, 0.25, 0.75])
+        lattice = Lattice([[3.8401979337, 0.00, 0.00],
+                           [1.9200989668, 3.3257101909, 0.00],
+                           [0.00, -2.2171384943, 3.1355090603]])
+        struct = Structure(lattice, ["P", "Fe", "O"], coords)
+        
+        syms = self.paramset.get_potcar_symbols(struct)
         self.assertEquals(syms, ['Fe_pv', 'P', 'O'])
+        
+        syms = MPVaspInputSet(sort_structure=False).get_potcar_symbols(struct)
+        self.assertEquals(syms, ['P', 'Fe_pv', 'O'])
+        
 
     def test_get_incar(self):
         incar = self.paramset.get_incar(self.struct)
@@ -160,15 +189,15 @@ class MITMPVaspInputSetTest(unittest.TestCase):
 
     def test_get_kpoints(self):
         kpoints = self.paramset.get_kpoints(self.struct)
-        self.assertEquals(kpoints.kpts, [[2, 4, 5]])
+        self.assertEquals(kpoints.kpts, [[2, 4, 6]])
         self.assertEquals(kpoints.style, 'Monkhorst')
 
         kpoints = self.mitparamset.get_kpoints(self.struct)
-        self.assertEquals(kpoints.kpts, [[2, 4, 5]])
+        self.assertEquals(kpoints.kpts, [[2, 4, 6]])
         self.assertEquals(kpoints.style, 'Monkhorst')
 
         kpoints = self.mpstaticparamset.get_kpoints(self.struct)
-        self.assertEquals(kpoints.kpts, [[3, 5, 6]])
+        self.assertEquals(kpoints.kpts, [[4, 6, 6]])
         self.assertEquals(kpoints.style, 'Monkhorst')
 
         kpoints = self.mpnscfparamsetl.get_kpoints(self.struct)
@@ -257,7 +286,7 @@ class MITNEBVaspInputSetTest(unittest.TestCase):
 
     def test_get_kpoints(self):
         kpoints = self.vis.get_kpoints(self.struct)
-        self.assertEquals(kpoints.kpts, [[2, 4, 5]])
+        self.assertEquals(kpoints.kpts, [[2, 4, 6]])
         self.assertEquals(kpoints.style, 'Monkhorst')
 
     def test_to_from_dict(self):

@@ -26,6 +26,7 @@ import random
 
 import numpy as np
 
+from fractions import gcd
 from pymatgen.core.operations import SymmOp
 from pymatgen.core.lattice import Lattice
 from pymatgen.core.periodic_table import Element, Specie, \
@@ -822,16 +823,16 @@ class IStructure(SiteCollection, MSONable):
             guaranteed to have len(new structure) <= len(structure).
         """
         original_volume = self.volume
-        (reduced_formula, num_fu) =\
-            self.composition.get_reduced_composition_and_factor()
-
-        min_vol = original_volume * 0.5 / num_fu
 
         #get the possible symmetry vectors
         sites = sorted(self._sites, key=lambda site: site.species_string)
         grouped_sites = [list(a[1]) for a
                          in itertools.groupby(sites,
                                               key=lambda s: s.species_string)]
+
+        num_fu = reduce(gcd, map(len, grouped_sites))
+        min_vol = original_volume * 0.5 / num_fu
+
         min_site_list = min(grouped_sites, key=lambda group: len(group))
 
         min_site_list = [site.to_unit_cell for site in min_site_list]
@@ -988,7 +989,7 @@ class IStructure(SiteCollection, MSONable):
         """
         Compute the scalar producr of vector(s) either in real space or
         reciprocal space.
-                                                                                                
+
         Args:
             coords:
                 Array-like object with the coordinates.
@@ -1643,7 +1644,7 @@ class Structure(IStructure):
             new_atom_occu = collections.defaultdict(int)
             for sp, amt in site.species_and_occu.items():
                 if sp in species_mapping:
-                    if isinstance(species_mapping[sp], dict):
+                    if isinstance(species_mapping[sp], collections.Mapping):
                         for new_sp, new_amt in species_mapping[sp].items():
                             new_atom_occu[smart_element_or_specie(new_sp)] \
                                 += amt * new_amt
@@ -1676,11 +1677,11 @@ class Structure(IStructure):
 
     def remove_species(self, species):
         """
-        Remove all occurrences of a species from a structure.
+        Remove all occurrences of several species from a structure.
 
         Args:
             species:
-                species to remove.
+                Sequence of species to remove, e.g., ["Li", "Na"].
         """
         new_sites = []
         species = map(smart_element_or_specie, species)
@@ -1948,7 +1949,7 @@ class Structure(IStructure):
             volume:
                 New volume of the unit cell in A^3.
         """
-        self._lattice = self._lattice.scale(volume)
+        self.modify_lattice(self._lattice.scale(volume))
 
 
 class Molecule(IMolecule):
@@ -2136,7 +2137,7 @@ class Molecule(IMolecule):
                             new_atom_occu[species_mapping[sp]] += amt
                         else:
                             new_atom_occu[species_mapping[sp]] = amt
-                    elif isinstance(species_mapping[sp], dict):
+                    elif isinstance(species_mapping[sp], collections.Mapping):
                         for new_sp, new_amt in species_mapping[sp].items():
                             if new_sp in new_atom_occu:
                                 new_atom_occu[new_sp] += amt * new_amt

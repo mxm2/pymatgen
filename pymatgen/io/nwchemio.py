@@ -5,6 +5,7 @@ This module implements input and output processing from Nwchem.
 """
 
 from __future__ import division
+import itertools
 
 __author__ = "Shyue Ping Ong"
 __copyright__ = "Copyright 2012, The Materials Project"
@@ -288,7 +289,9 @@ class NwInput(MSONable):
     """
 
     def __init__(self, mol, tasks, directives=None,
-                 geometry_options=("units", "angstroms")):
+                 geometry_options=("units", "angstroms"),
+                 symmetry_options=None,
+                 memory_options=None):
         """
         Args:
             mol:
@@ -304,11 +307,19 @@ class NwInput(MSONable):
                 Additional list of options to be supplied to the geometry.
                 E.g., ["units", "angstroms", "noautoz"]. Defaults to
                 ("units", "angstroms").
+            symmetry_options:
+                Addition list of option to be supplied to the symmetry.
+                E.g. ["c1"] to turn off the symmetry
+            memory_options:
+                memory controlling options. str.
+                E.g "total 1000 mb stack 400 mb"
         """
         self._mol = mol
         self.directives = directives if directives is not None else []
         self.tasks = tasks
         self.geometry_options = geometry_options
+        self.symmetry_options = symmetry_options
+        self.memory_options = memory_options
 
     @property
     def molecule(self):
@@ -319,10 +330,14 @@ class NwInput(MSONable):
 
     def __str__(self):
         o = []
+        if self.memory_options:
+            o.append('memory ' + self.memory_options)
         for d in self.directives:
             o.append("{} {}".format(d[0], d[1]))
         o.append("geometry "
                  + " ".join(self.geometry_options))
+        if self.symmetry_options:
+            o.append(" symmetry " + " ".join(self.symmetry_options))
         for site in self._mol:
             o.append(" {} {} {} {}".format(site.specie.symbol, site.x, site.y,
                                            site.z))
@@ -342,7 +357,9 @@ class NwInput(MSONable):
             "mol": self._mol.to_dict,
             "tasks": [t.to_dict for t in self.tasks],
             "directives": [list(t) for t in self.directives],
-            "geometry_options": list(self.geometry_options)
+            "geometry_options": list(self.geometry_options),
+            "symmetry_options": self.symmetry_options,
+            "memory_options": self.memory_options
         }
 
     @classmethod
@@ -350,7 +367,9 @@ class NwInput(MSONable):
         return NwInput(Molecule.from_dict(d["mol"]),
                        tasks=[NwTask.from_dict(dt) for dt in d["tasks"]],
                        directives=[tuple(li) for li in d["directives"]],
-                       geometry_options=d["geometry_options"])
+                       geometry_options=d["geometry_options"],
+                       symmetry_options=d["symmetry_options"],
+                       memory_options=d["memory_options"])
 
     @classmethod
     def from_string(cls, string_input):
@@ -373,6 +392,8 @@ class NwInput(MSONable):
         basis_set = None
         theory_directives = {}
         geom_options = None
+        symmetry_options = None
+        memory_options = None
         lines = string_input.strip().split("\n")
         while len(lines) > 0:
             l = lines.pop(0).strip()
@@ -382,8 +403,12 @@ class NwInput(MSONable):
             toks = l.split()
             if toks[0].lower() == "geometry":
                 geom_options = toks[1:]
-                #Parse geometry
                 l = lines.pop(0).strip()
+                toks = l.split()
+                if toks[0].lower() == "symmetry":
+                    symmetry_options = toks[1:]
+                    l = lines.pop(0).strip()
+                #Parse geometry
                 species = []
                 coords = []
                 while l.lower() != "end":
@@ -422,11 +447,15 @@ class NwInput(MSONable):
                            title=title, theory=toks[1],
                            operation=toks[2], basis_set=basis_set,
                            theory_directives=theory_directives.get(toks[1])))
+            elif toks[0].lower() == "memory":
+                    memory_options = ' '.join(toks[1:])
             else:
                 directives.append(l.strip().split())
 
         return NwInput(mol, tasks=tasks, directives=directives,
-                       geometry_options=geom_options)
+                       geometry_options=geom_options,
+                       symmetry_options=symmetry_options,
+                       memory_options=memory_options)
 
     @classmethod
     def from_file(cls, filename):
@@ -502,10 +531,12 @@ class NwOutput(object):
         error_defs = {
             "calculations not reaching convergence": "Bad convergence",
             "Calculation failed to converge": "Bad convergence",
-            "geom_binvr: #indep variables incorrect": "autoz error"}
+            "geom_binvr: #indep variables incorrect": "autoz error",
+            "dft optimize failed": "Geometry optimization failed"}
 
         data = {}
         energies = []
+        frequencies = None
         corrections = {}
         molecules = []
         species = []
@@ -513,6 +544,7 @@ class NwOutput(object):
         errors = []
         basis_set = {}
         parse_geom = False
+        parse_freq = False
         parse_bset = False
         job_type = ""
         for l in output.split("\n"):
@@ -531,6 +563,18 @@ class NwOutput(object):
                         species.append(m.group(1).capitalize())
                         coords.append([float(m.group(2)), float(m.group(3)),
                                        float(m.group(4))])
+            if parse_freq:
+                if len(l.strip()) == 0:
+                    if len(frequencies[-1][1]) == 0:
+                        continue
+                    else:
+                        parse_freq = False
+                else:
+                    vibs = [float(vib) for vib in l.strip().split()[1:]]
+                    num_vibs = len(vibs)
+                    for mode, dis in zip(frequencies[-num_vibs:], vibs):
+                        mode[1].append(dis)
+
             elif parse_bset:
                 if l.strip() == "":
                     parse_bset = False
@@ -551,11 +595,17 @@ class NwOutput(object):
 
                 m = energy_gas_patt.search(l)
                 if m:
-                    energies.append(Energy(m.group(1), "Ha").to("eV"))
+                    cosmo_scf_energy = energies[-1]
+                    energies[-1] = dict()
+                    energies[-1].update({"cosmo scf": cosmo_scf_energy})
+                    energies[-1].update({"gas phase":
+                                         Energy(m.group(1), "Ha").to("eV")})
+
 
                 m = energy_sol_patt.search(l)
                 if m:
-                    energies.append(Energy(m.group(1), "Ha").to("eV"))
+                    energies[-1].update({"sol phase":
+                                     Energy(m.group(1), "Ha").to("eV")})
 
                 m = preamble_patt.search(l)
                 if m:
@@ -569,6 +619,12 @@ class NwOutput(object):
                     parse_geom = True
                 elif l.find("Summary of \"ao basis\"") != -1:
                     parse_bset = True
+                elif l.find("P.Frequency") != -1:
+                    parse_freq = True
+                    if not frequencies:
+                        frequencies = []
+                    frequencies.extend([(float(freq), []) for freq
+                                        in l.strip().split()[1:]])
                 elif job_type == "" and l.strip().startswith("NWChem"):
                     job_type = l.strip()
                     if job_type == "NWChem DFT Module" and \
@@ -579,12 +635,15 @@ class NwOutput(object):
                     if m:
                         corrections[m.group(1)] = FloatWithUnit(
                             m.group(2), "kJ mol^-1").to("eV atom^-1")
-
+        if frequencies:
+            for freq, mode in frequencies:
+                mode[:] = zip(*[iter(mode)]*3)
         data.update({"job_type": job_type, "energies": energies,
                      "corrections": corrections,
                      "molecules": molecules,
                      "basis_set": basis_set,
                      "errors": errors,
-                     "has_error": len(errors) > 0})
+                     "has_error": len(errors) > 0,
+                     "frequencies": frequencies})
 
         return data
