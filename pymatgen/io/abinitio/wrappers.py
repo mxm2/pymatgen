@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 
 import os
-import cStringIO as StringIO
+import six.StringIO as StringIO
 
 from subprocess import Popen, PIPE
 from monty.os.path import which

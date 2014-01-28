@@ -5,7 +5,7 @@ import os
 import time
 import collections
 import yaml
-import cStringIO as StringIO
+import six.StringIO as StringIO
 from monty.os.path import which
 from pymatgen.io.abinitio import myaml
 
