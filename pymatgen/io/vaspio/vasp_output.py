@@ -23,7 +23,7 @@ import math
 import itertools
 import warnings
 import xml.sax.handler
-import StringIO
+import six.StringIO as StringIO
 import logging
 from collections import defaultdict
 
