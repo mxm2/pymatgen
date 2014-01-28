@@ -25,6 +25,7 @@ import re
 import itertools
 import warnings
 import numpy as np
+import six
 
 from collections import defaultdict, OrderedDict
 from pymatgen.symmetry.finder import SymmetryFinder
@@ -586,7 +587,7 @@ class FeffTags(dict):
         super(FeffTags, self).__setitem__(key.strip(),
                                           FeffTags.proc_val(key.strip(),
                                                             val.strip())
-                                          if isinstance(val, basestring)
+                                          if isinstance(val, six.string_types)
                                           else val)
 
     @property

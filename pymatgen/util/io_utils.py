@@ -17,7 +17,7 @@ import numpy
 import os
 import time
 import errno
-from monty.io import zopen
+import six
 
 
 def zpath(filename):
@@ -145,7 +145,7 @@ def clean_json(input_json, strict=False):
         if not strict:
             return str(input_json)
         else:
-            if isinstance(input_json, basestring):
+            if isinstance(input_json, six.string_types):
                 return str(input_json)
             elif input_json is None:
                 return 'None'

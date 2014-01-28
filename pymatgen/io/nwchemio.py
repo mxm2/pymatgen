@@ -17,6 +17,8 @@ __date__ = "6/5/13"
 import re
 from string import Template
 
+import six
+
 from pymatgen.core import Molecule
 from pymatgen.util.io_utils import zopen
 from pymatgen.serializers.json_coders import MSONable
@@ -219,7 +221,7 @@ task $theory $operation""")
             spin_multiplicity = 1 if nelectrons % 2 == 0 else 2
 
         elements = set(mol.composition.get_el_amt_dict().keys())
-        if isinstance(basis_set, basestring):
+        if isinstance(basis_set, six.string_types):
             basis_set = {el: basis_set for el in elements}
 
         return NwTask(charge, spin_multiplicity, basis_set,

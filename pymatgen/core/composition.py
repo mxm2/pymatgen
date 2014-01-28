@@ -23,6 +23,7 @@ from pymatgen.core.periodic_table import get_el_sp, Element
 from pymatgen.util.string_utils import formula_double_format
 from pymatgen.serializers.json_coders import MSONable
 from pymatgen.core.units import unitized
+from six import string_types
 
 
 class Composition(collections.Mapping, collections.Hashable, MSONable):
@@ -99,7 +100,7 @@ class Composition(collections.Mapping, collections.Hashable, MSONable):
             In addition, the Composition constructor also allows a single
             string as an input formula. E.g., Composition("Li2O").
         """
-        if len(args) == 1 and isinstance(args[0], basestring):
+        if len(args) == 1 and isinstance(args[0], string_types):
             elmap = self._parse_formula(args[0])
         else:
             elmap = dict(*args, **kwargs)

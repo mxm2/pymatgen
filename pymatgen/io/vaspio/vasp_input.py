@@ -22,6 +22,7 @@ import itertools
 import warnings
 from six.moves import configparser
 import logging
+import six
 
 import numpy as np
 from numpy.linalg import det
@@ -491,7 +492,8 @@ class Incar(dict):
         """
         super(Incar, self).__setitem__(key.strip(),
                                        Incar.proc_val(key.strip(), val.strip())
-                                       if isinstance(val, basestring) else val)
+                                       if isinstance(val, six.string_types)
+                                       else val)
 
     @property
     def to_dict(self):

@@ -19,7 +19,7 @@ __status__ = "Production"
 __date__ = "Aug 30, 2013"
 
 import numpy as np
-
+import six
 import collections
 from numbers import Number
 import numbers
@@ -165,7 +165,7 @@ class Unit(collections.Mapping):
                 space-separated.
         """
 
-        if isinstance(unit_def, basestring):
+        if isinstance(unit_def, six.string_types):
             unit = collections.defaultdict(int)
             for m in re.finditer("([A-Za-z]+)\s*\^*\s*([\-0-9]*)", unit_def):
                 p = m.group(2)

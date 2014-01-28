@@ -24,6 +24,7 @@ from collections import OrderedDict
 
 import CifFile
 import numpy as np
+import six
 
 from pymatgen.core.periodic_table import Element, Specie
 from pymatgen.util.io_utils import zopen
@@ -48,7 +49,7 @@ class CifParser(object):
 
     def __init__(self, filename, occupancy_tolerance=1.):
         self._occupancy_tolerance = occupancy_tolerance
-        if isinstance(filename, basestring):
+        if isinstance(filename, six.string_types):
             with zopen(filename, "r") as f:
                 # We use this round-about way to clean up the CIF first.
                 stream = cStringIO.StringIO(_clean_cif(f.read()))

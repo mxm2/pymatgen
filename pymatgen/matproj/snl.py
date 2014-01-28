@@ -19,6 +19,8 @@ import datetime
 from collections import namedtuple
 import json
 
+import six
+
 from pymatgen.util.string_utils import remove_non_ascii
 from pymatgen.core.structure import Structure, Molecule
 from pymatgen.serializers.json_coders import PMGJSONDecoder, PMGJSONEncoder
@@ -147,7 +149,7 @@ class Author(namedtuple('Author', ['name', 'email'])):
         Returns:
             An Author object.
         """
-        if isinstance(author, basestring):
+        if isinstance(author, six.string_types):
             # Regex looks for whitespace, (any name), whitespace, <, (email),
             # >, whitespace
             m = re.match('\s*(.*?)\s*<(.*?@.*?)>\s*', author)
@@ -202,13 +204,13 @@ class StructureNL(object):
 
         # turn authors into list of Author objects
         authors = authors.split(',')\
-            if isinstance(authors, basestring) else authors
+            if isinstance(authors, six.string_types) else authors
         self.authors = [Author.parse_author(a) for a in authors]
 
         # turn projects into list of Strings
         projects = projects if projects else []
         self.projects = [projects] \
-            if isinstance(projects, basestring) else projects
+            if isinstance(projects, six.string_types) else projects
 
         # check that references are valid BibTeX
         if references and not is_valid_bibtex(references):
@@ -223,7 +225,7 @@ class StructureNL(object):
 
         # turn remarks into list of Strings
         remarks = remarks if remarks else []
-        self.remarks = [remarks] if isinstance(remarks, basestring) \
+        self.remarks = [remarks] if isinstance(remarks, six.string_types) \
             else remarks
 
         # check remarks limit
