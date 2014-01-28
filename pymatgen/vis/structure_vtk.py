@@ -14,7 +14,7 @@ __email__ = "shyuep@gmail.com"
 __date__ = "Nov 27, 2011"
 
 import os
-import ConfigParser
+from six.moves import configparser
 import itertools
 import math
 import subprocess
@@ -92,7 +92,7 @@ class StructureVis(object):
             self.el_color_mapping = element_color_mapping
         else:
             module_dir = os.path.dirname(os.path.abspath(__file__))
-            config = ConfigParser.SafeConfigParser()
+            config = configparser.SafeConfigParser()
             config.optionxform = str
             config.readfp(open(os.path.join(module_dir,
                                             "ElementColorSchemes.cfg")))

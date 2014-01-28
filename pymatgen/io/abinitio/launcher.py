@@ -160,7 +160,8 @@ class OmpEnv(dict):
     def from_file(cls, filename, allow_empty=False):
         """Reads the OpenMP variables from a INI file."""
         if filename.endswith(".ini"):
-            from ConfigParser import SafeConfigParser, NoOptionError
+            from six.moves.configparser import SafeConfigParser, \
+                NoOptionError
 
             parser = SafeConfigParser()
             parser.read(filename)

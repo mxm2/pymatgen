@@ -6,3 +6,4 @@ pybtex>=0.16
 matplotlib>1.1
 pydispatcher>=2.0
 monty>=0.1.1
+six>=1.5.2

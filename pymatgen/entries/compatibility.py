@@ -16,7 +16,7 @@ __date__ = "Mar 19, 2012"
 
 
 import os
-import ConfigParser
+from six.moves import configparser
 from collections import defaultdict
 
 from pymatgen.io.vaspio_set import MITVaspInputSet, MPVaspInputSet
@@ -127,7 +127,7 @@ class GasCorrection(Correction):
     """
     def __init__(self, name):
         module_dir = os.path.dirname(os.path.abspath(__file__))
-        config = ConfigParser.SafeConfigParser()
+        config = configparser.SafeConfigParser()
         config.optionxform = str
         config.readfp(open(os.path.join(module_dir, "Compatibility.cfg")))
         cpd_energies = dict(
@@ -195,7 +195,7 @@ class AqueousCorrection(Correction):
     """
     def __init__(self, name):
         module_dir = os.path.dirname(os.path.abspath(__file__))
-        config = ConfigParser.SafeConfigParser()
+        config = configparser.Safeconfigparser()
         config.optionxform = str
         config.readfp(open(os.path.join(module_dir,
                                         "Compatibility.cfg")))
@@ -256,7 +256,7 @@ class UCorrection(Correction):
 
     def __init__(self, name, compat_type):
         module_dir = os.path.dirname(os.path.abspath(__file__))
-        config = ConfigParser.SafeConfigParser()
+        config = configparser.Safeconfigparser()
         config.optionxform = str
         config.readfp(open(os.path.join(module_dir, "Compatibility.cfg")))
         if name == "MP":

@@ -20,7 +20,7 @@ import os
 import re
 import itertools
 import warnings
-import ConfigParser
+from six.moves import configparser
 import logging
 
 import numpy as np
@@ -1054,7 +1054,7 @@ def get_potcar_dir():
     elif os.path.exists(os.path.join(os.path.dirname(pymatgen.__file__),
                                      "pymatgen.cfg")):
         module_dir = os.path.dirname(pymatgen.__file__)
-        config = ConfigParser.SafeConfigParser()
+        config = configparser.SafeConfigParser()
         config.readfp(open(os.path.join(module_dir, "pymatgen.cfg")))
         return config.get("VASP", "pspdir")
     return None

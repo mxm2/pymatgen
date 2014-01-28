@@ -1,9 +1,6 @@
 #!/usr/bin/python
 from __future__ import division
 
-import numpy as np
-import tempfile
-import cPickle as pickle
 import collections
 
 from pymatgen.util.testing import PymatgenTest
