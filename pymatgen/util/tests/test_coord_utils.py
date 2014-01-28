@@ -113,7 +113,7 @@ class CoordUtilsTest(PymatgenTest):
     def test_get_points_in_sphere_pbc(self):
         latt = Lattice.cubic(1)
         pts = []
-        for a, b, c in itertools.product(xrange(10), xrange(10), xrange(10)):
+        for a, b, c in itertools.product(range(10), range(10), range(10)):
             pts.append([a / 10, b / 10, c / 10])
 
         self.assertEqual(len(get_points_in_sphere_pbc(latt, pts, [0, 0, 0],

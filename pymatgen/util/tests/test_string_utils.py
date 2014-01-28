@@ -50,8 +50,8 @@ ccc   dddd"""
         self.assertEqual(formula_double_format(2.10), "2.1")
 
     def test_remove_non_ascii(self):
-        s = "".join(chr(random.randint(0, 127)) for i in xrange(10))
-        s += "".join(chr(random.randint(128, 150)) for i in xrange(10))
+        s = "".join(chr(random.randint(0, 127)) for i in range(10))
+        s += "".join(chr(random.randint(128, 150)) for i in range(10))
         clean = remove_non_ascii(s)
         self.assertEqual(len(clean), 10)
 
