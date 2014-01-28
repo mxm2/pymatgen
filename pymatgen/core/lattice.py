@@ -52,7 +52,7 @@ class Lattice(MSONable):
         m = np.array(matrix, dtype=np.float64).reshape((3, 3))
         lengths = np.sqrt(np.sum(m ** 2, axis=1))
         angles = np.zeros(3)
-        for i in xrange(3):
+        for i in range(3):
             j = (i + 1) % 3
             k = (i + 2) % 3
             angles[i] = dot(m[j], m[k]) / (lengths[j] * lengths[k])
@@ -331,7 +331,7 @@ class Lattice(MSONable):
             return self._reciprocal_lattice
         except AttributeError:
             v = [np.cross(self._matrix[(i + 1) % 3], self._matrix[(i + 2) % 3])
-                for i in xrange(3)]
+                for i in range(3)]
             self._reciprocal_lattice = Lattice(np.array(v) * 2 * np.pi /
                                                self.volume)
             return self._reciprocal_lattice
@@ -519,7 +519,7 @@ class Lattice(MSONable):
 
         b[:, 0] = a[:, 0]
         m[0] = dot(b[:, 0], b[:, 0])
-        for i in xrange(1, 3):
+        for i in range(1, 3):
             u[i, 0:i] = dot(a[:, i].T, b[:, 0:i]) / m[0:i]
             b[:, i] = a[:, i] - dot(b[:, 0:i], u[i, 0:i].T)
             m[i] = dot(b[:, i], b[:, i])
@@ -528,7 +528,7 @@ class Lattice(MSONable):
 
         while k <= 3:
             # Size reduction.
-            for i in xrange(k - 1, 0, -1):
+            for i in range(k - 1, 0, -1):
                 q = round(u[k - 1, i - 1])
                 if q != 0:
                     # Reduce the k-th basis vector.
@@ -551,7 +551,7 @@ class Lattice(MSONable):
                 a[:, k - 1] = a[:, k - 2].copy()
                 a[:, k - 2] = v
                 #Update the Gram-Schmidt coefficients
-                for s in xrange(k - 1, k + 1):
+                for s in range(k - 1, k + 1):
                     u[s - 1, 0:(s - 1)] = dot(a[:, s - 1].T,
                                               b[:, 0:(s - 1)]) / m[0:(s - 1)]
                     b[:, s - 1] = a[:, s - 1] - dot(b[:, 0:(s - 1)],
@@ -595,7 +595,7 @@ class Lattice(MSONable):
         G = np.array(G)
 
         #This sets an upper limit on the number of iterations.
-        for count in xrange(100):
+        for count in range(100):
             #The steps are labelled as Ax as per the labelling scheme in the
             #paper.
             (A, B, C, E, N, Y) = (G[0, 0], G[1, 1], G[2, 2],
