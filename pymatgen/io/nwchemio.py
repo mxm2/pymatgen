@@ -20,7 +20,7 @@ from string import Template
 import six
 
 from pymatgen.core import Molecule
-from pymatgen.util.io_utils import zopen
+from monty.io import zopen
 from pymatgen.serializers.json_coders import MSONable
 from pymatgen.core.units import Energy
 from pymatgen.core.units import FloatWithUnit
