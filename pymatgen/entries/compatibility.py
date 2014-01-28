@@ -195,7 +195,7 @@ class AqueousCorrection(Correction):
     """
     def __init__(self, name):
         module_dir = os.path.dirname(os.path.abspath(__file__))
-        config = configparser.Safeconfigparser()
+        config = configparser.SafeConfigParser()
         config.optionxform = str
         config.readfp(open(os.path.join(module_dir,
                                         "Compatibility.cfg")))
@@ -256,7 +256,7 @@ class UCorrection(Correction):
 
     def __init__(self, name, compat_type):
         module_dir = os.path.dirname(os.path.abspath(__file__))
-        config = configparser.Safeconfigparser()
+        config = configparser.SafeConfigParser()
         config.optionxform = str
         config.readfp(open(os.path.join(module_dir, "Compatibility.cfg")))
         if name == "MP":
