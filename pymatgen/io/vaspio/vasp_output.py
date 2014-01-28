@@ -23,7 +23,7 @@ import math
 import itertools
 import warnings
 import xml.sax.handler
-import six.StringIO as StringIO
+from six import StringIO
 import logging
 from collections import defaultdict
 
@@ -641,7 +641,7 @@ class VasprunHandler(xml.sax.handler.ContentHandler):
         else:  # reading calculations and structures and eigenvalues.
             self._init_calc(name, attributes)
         if self.read_val:
-            self.val = StringIO.StringIO()
+            self.val = StringIO()
 
     def characters(self, data):
         """
@@ -784,12 +784,12 @@ class VasprunHandler(xml.sax.handler.ContentHandler):
         elif name == "scstep":
             self.scstep = {}
         elif name == "structure":
-            self.latticestr = StringIO.StringIO()
-            self.latticerec = StringIO.StringIO()
-            self.posstr = StringIO.StringIO()
+            self.latticestr = StringIO()
+            self.latticerec = StringIO()
+            self.posstr = StringIO()
             self.read_structure = True
         elif name == "varray" and (state["varray"] in ["forces", "stress"]):
-            self.posstr = StringIO.StringIO()
+            self.posstr = StringIO()
 
     def _read_input(self, name):
         state = self._state

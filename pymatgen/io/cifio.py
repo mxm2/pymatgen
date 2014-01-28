@@ -52,7 +52,7 @@ class CifParser(object):
         if isinstance(filename, six.string_types):
             with zopen(filename, "r") as f:
                 # We use this round-about way to clean up the CIF first.
-                stream = StringIO.StringIO(_clean_cif(f.read()))
+                stream = StringIO(_clean_cif(f.read()))
                 self._cif = CifFile.ReadCif(stream)
         else:
             self._cif = CifFile.ReadCif(filename)
@@ -71,7 +71,7 @@ class CifParser(object):
         Returns:
             CifParser
         """
-        stream = StringIO.StringIO(_clean_cif(cif_string))
+        stream = StringIO(_clean_cif(cif_string))
         return CifParser(stream, occupancy_tolerance)
 
     def _unique_coords(self, coord_in):

@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 
 import os
-import six.StringIO as StringIO
+from six import StringIO
 
 from subprocess import Popen, PIPE
 from monty.os.path import which
@@ -140,7 +140,7 @@ class Mrgscr(ExecWrapper):
             self.stdin_fname, self.stdout_fname, self.stderr_fname = \
                 map(os.path.join, 3 * [cwd], [self.stdin_fname, self.stdout_fname, self.stderr_fname])
 
-        inp = StringIO.StringIO()
+        inp = StringIO()
 
         inp.write(str(nfiles) + "\n")     # Number of files to merge.
         inp.write(out_prefix + "\n")      # Prefix for the final output file:
