@@ -25,7 +25,7 @@ from pymatgen.io.cifio import CifParser, CifWriter
 from pymatgen.io.cssrio import Cssr
 from pymatgen.io.xyzio import XYZ
 from pymatgen.io.gaussianio import GaussianInput, GaussianOutput
-from pymatgen.util.io_utils import zopen
+from monty.io import zopen
 from pymatgen.serializers.json_coders import PMGJSONDecoder, PMGJSONEncoder
 from pymatgen.io.babelio import BabelMolAdaptor
 
@@ -38,8 +38,7 @@ def read_structure(filename):
     vasprun.xml, CSSR and pymatgen's JSON serialized structures.
 
     Args:
-        filename:
-            A filename to read from.
+        filename (str): A filename to read from.
 
     Returns:
         A Structure object.
@@ -75,10 +74,8 @@ def write_structure(structure, filename):
     serialized structures.
 
     Args:
-        structure:
-            Structure to write
-        filename:
-            A filename to write to.
+        structure (Structure/IStructure): Structure to write
+        filename (str): A filename to write to.
     """
     fname = os.path.basename(filename)
     if fnmatch(fname, "*.cif*"):
@@ -106,8 +103,7 @@ def read_mol(filename):
     many more extensions are supported but requires openbabel to be installed.
 
     Args:
-        filename:
-            A filename to read from.
+        filename (str): A filename to read from.
 
     Returns:
         A Molecule object.
@@ -146,10 +142,8 @@ def write_mol(mol, filename):
     molecules.
 
     Args:
-        mol:
-            Molecule to write
-        filename:
-            A filename to write to.
+        mol (Molecule/IMolecule): Molecule to write
+        filename (str): A filename to write to.
     """
     fname = os.path.basename(filename)
     if fnmatch(fname.lower(), "*.xyz*"):

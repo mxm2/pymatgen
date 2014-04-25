@@ -26,14 +26,17 @@ import logging
 import numpy as np
 from numpy.linalg import det
 
+from monty.io import zopen
+from monty.os.path import zpath
+
 from pymatgen.core.lattice import Lattice
 from pymatgen.core.physical_constants import BOLTZMANN_CONST
 from pymatgen.core.design_patterns import Enum
 from pymatgen.core.structure import Structure
 from pymatgen.core.periodic_table import Element
-from pymatgen.util.decorators import cached_class
+from monty.design_patterns import cached_class
 from pymatgen.util.string_utils import str_aligned, str_delimited
-from pymatgen.util.io_utils import zopen, clean_lines
+from pymatgen.util.io_utils import clean_lines
 from pymatgen.serializers.json_coders import MSONable, PMGJSONDecoder
 import pymatgen
 
@@ -46,6 +49,21 @@ class Poscar(MSONable):
     Object for representing the data in a POSCAR or CONTCAR file.
     Please note that this current implementation. Most attributes can be set
     directly.
+
+    Args:
+        structure (Structure):  Structure object.
+        comment (str): Optional comment line for POSCAR. Defaults to unit
+            cell formula of structure. Defaults to None.
+        selective_dynamics (Nx3 array): bool values for selective dynamics,
+            where N is number of sites. Defaults to None.
+        true_names (bool): Set to False is the names in the POSCAR are not
+            well-defined and ambiguous. This situation arises commonly in
+            vasp < 5 where the POSCAR sometimes does not contain element
+            symbols. Defaults to True.
+        velocities (Nx3 array): Velocities for the POSCAR. Typically parsed
+            in MD runs or can be used to initialize velocities.
+        predictor_corrector (Nx3 array): Predictor corrector for the POSCAR.
+            Typically parsed in MD runs.
 
     .. attribute:: structure
 
@@ -83,29 +101,6 @@ class Poscar(MSONable):
 
     def __init__(self, structure, comment=None, selective_dynamics=None,
                  true_names=True, velocities=None, predictor_corrector=None):
-        """
-        Args:
-            structure:
-                Structure object. See pymatgen.core.structure.Structure.
-            comment:
-                Optional comment line for POSCAR. Defaults to unit cell
-                formula of structure. Defaults to None.
-            selective_dynamics:
-                Nx3 2D array of boolean values for selective dynamics, where N
-                is number of sites. Defaults to None.
-            true_names:
-                Set to False is the names in the POSCAR are not well-defined
-                and ambiguous. This situation arises commonly in vasp < 5 where
-                the POSCAR sometimes does not contain element symbols. Defaults
-                to True.
-            velocities:
-                Velocities for the POSCAR. Typically parsed in MD runs or can
-                be used to initialize velocities.
-            predictor_corrector:
-                Velocities for the POSCAR. Typically parsed in MD runs or can
-                be used to initialize velocities.
-        """
-
         if structure.is_ordered:
             self.structure = structure
             self.true_names = true_names
@@ -176,11 +171,9 @@ class Poscar(MSONable):
         require specific elemental properties should work fine.
 
         Args:
-            filename:
-                File name containing Poscar data.
-            check_for_POTCAR:
-                Whether to check if a POTCAR is present in the same directory
-                as the POSCAR. Defaults to True.
+            filename (str): File name containing Poscar data.
+            check_for_POTCAR (bool): Whether to check if a POTCAR is present
+                in the same directory as the POSCAR. Defaults to True.
 
         Returns:
             Poscar object.
@@ -220,11 +213,9 @@ class Poscar(MSONable):
         require specific elemental properties should work fine.
 
         Args:
-            data:
-                string containing Poscar data.
-            default_names:
-                default symbols for the POSCAR file, usually coming from a
-                POTCAR in the same directory.
+            data (str): String containing Poscar data.
+            default_names ([str]): Default symbols for the POSCAR file,
+                usually coming from a POTCAR in the same directory.
 
         Returns:
             Poscar object.
@@ -343,16 +334,15 @@ class Poscar(MSONable):
         symbols are written, which means compatibility is for vasp >= 5.
 
         Args:
-            direct:
-                Whether coordinates are output in direct or cartesian. Defaults
-                to True.
-            vasp4_compatible:
-                Set to True to omit site symbols on 6th line to maintain
-                backward vasp 4.x compatibility. Defaults to False.
-            significant_figures:
-                Number of significant figures to output all quantities.
-                Defaults to 6. Note that positions are output in fixed point,
-                while velocities are output in scientific format.
+            direct (bool): Whether coordinates are output in direct or
+                cartesian. Defaults to True.
+            vasp4_compatible (bool): Set to True to omit site symbols on 6th
+                line to maintain backward vasp 4.x compatibility. Defaults
+                to False.
+            significant_figures (int): No. of significant figures to
+                output all quantities. Defaults to 6. Note that positions are
+                output in fixed point, while velocities are output in
+                scientific format.
 
         Returns:
             String representation of POSCAR.
@@ -396,7 +386,7 @@ class Poscar(MSONable):
             for v in self.predictor_corrector[2:]:
                 lines.append(" ".join([format_str.format(i) for i in v]))
 
-        return "\n".join(lines)
+        return "\n".join(lines) + "\n"
 
     def __str__(self):
         """
@@ -410,7 +400,7 @@ class Poscar(MSONable):
         the Poscar.get_string method and are passed through directly.
         """
         with open(filename, "w") as f:
-            f.write(self.get_string(**kwargs) + "\n")
+            f.write(self.get_string(**kwargs))
 
     @property
     def to_dict(self):
@@ -445,8 +435,7 @@ class Poscar(MSONable):
         Overwrites imported velocities, if any.
 
         Args:
-            temperature:
-                Temperature in Kelvin.
+            temperature (float): Temperature in Kelvin.
         """
         # mean 0 variance 1
         velocities = np.random.randn(len(self.structure), 3)
@@ -490,8 +479,7 @@ class Incar(dict):
         Creates an Incar object.
 
         Args:
-            params:
-                A set of input parameters as a dictionary.
+            params (dict): A set of input parameters as a dictionary.
         """
         super(Incar, self).__init__()
         if params:
@@ -526,11 +514,10 @@ class Incar(dict):
         pretty printing.
 
         Args:
-            sort_keys:
-                Set to True to sort the INCAR parameters alphabetically.
-                Defaults to False.
-            pretty:
-                Set to True for pretty aligned output. Defaults to False.
+            sort_keys (bool): Set to True to sort the INCAR parameters
+                alphabetically. Defaults to False.
+            pretty (bool): Set to True for pretty aligned output. Defaults
+                to False.
         """
         keys = self.keys()
         if sort_keys:
@@ -548,9 +535,9 @@ class Incar(dict):
                 lines.append([k, self[k]])
 
         if pretty:
-            return str_aligned(lines)
+            return str_aligned(lines) + "\n"
         else:
-            return str_delimited(lines, None, " = ")
+            return str_delimited(lines, None, " = ") + "\n"
 
     def __str__(self):
         return self.get_string(sort_keys=True, pretty=False)
@@ -560,11 +547,10 @@ class Incar(dict):
         Write Incar to a file.
 
         Args:
-            filename:
-                filename to write to.
+            filename (str): filename to write to.
         """
         with open(filename, "w") as f:
-            f.write(self.__str__() + "\n")
+            f.write(self.__str__())
 
     @staticmethod
     def from_file(filename):
@@ -572,7 +558,7 @@ class Incar(dict):
         Reads an Incar object from a file.
 
         Args:
-            filename - Filename for file
+            filename (str): Filename for file
 
         Returns:
             Incar object
@@ -596,10 +582,8 @@ class Incar(dict):
         integers, floats, lists, etc.
 
         Args:
-            key:
-                INCAR parameter key
-            val:
-                Actual value of INCAR parameter.
+            key: INCAR parameter key
+            val: Actual value of INCAR parameter.
         """
         list_keys = ("LDAUU", "LDAUL", "LDAUJ", "LDAUTYPE", "MAGMOM")
         bool_keys = ("LDAU", "LWAVE", "LSCALU", "LCHARG", "LPLANE", "LHFCALC")
@@ -673,8 +657,7 @@ class Incar(dict):
         two runs were done using the same parameters.
 
         Args:
-            other:
-                The other Incar object to compare to.
+            other (Incar): The other Incar object to compare to.
 
         Returns:
             Dict of the following format:
@@ -734,40 +717,30 @@ class Kpoints(MSONable):
         is recommended that you use those.
 
         Args:
-            comment:
-                String comment for Kpoints
-            num_kpts:
-                Following VASP method of defining the KPOINTS file, this
+            comment (str): String comment for Kpoints
+            num_kpts: Following VASP method of defining the KPOINTS file, this
                 parameter is the number of kpoints specified. If set to 0
                 (or negative), VASP automatically generates the KPOINTS.
-            style:
-                Style for generating KPOINTS.  Use one of the
+            style: Style for generating KPOINTS.  Use one of the
                 Kpoints.supported_modes enum types.
-            kpts:
-                2D array of kpoints.  Even when only a single specification is
-                required, e.g. in the automatic scheme, the kpts should still
-                be specified as a 2D array. e.g., [[20]] or [[2,2,2]].
-            kpts_shift:
-                Shift for Kpoints.
-            kpts_weights:
-                Optional weights for kpoints.  Weights should be integers. For
-                explicit kpoints.
-            coord_type:
-                In line-mode, this variable specifies whether the Kpoints were
-                given in Cartesian or Reciprocal coordinates.
-            labels:
-                In line-mode, this should provide a list of labels for each
-                kpt. It is optional in explicit kpoint mode as comments for
+            kpts (2D array): 2D array of kpoints.  Even when only a single
+                specification is required, e.g. in the automatic scheme,
+                the kpts should still be specified as a 2D array. e.g.,
+                [[20]] or [[2,2,2]].
+            kpts_shift (3x1 array): Shift for Kpoints.
+            kpts_weights: Optional weights for kpoints.  Weights should be
+                integers. For explicit kpoints.
+            coord_type: In line-mode, this variable specifies whether the
+                Kpoints were given in Cartesian or Reciprocal coordinates.
+            labels: In line-mode, this should provide a list of labels for
+                each kpt. It is optional in explicit kpoint mode as comments for
                 k-points.
-            tet_number:
-                For explicit kpoints, specifies the number of tetrahedrons for
-                the tetrahedron method.
-            tet_weight:
-                For explicit kpoints, specifies the weight for each tetrahedron
-                for the tetrahedron method.
-            tet_connections:
-                For explicit kpoints, specifies the connections of the
+            tet_number: For explicit kpoints, specifies the number of
                 tetrahedrons for the tetrahedron method.
+            tet_weight: For explicit kpoints, specifies the weight for each
+                tetrahedron for the tetrahedron method.
+            tet_connections: For explicit kpoints, specifies the connections
+                of the tetrahedrons for the tetrahedron method.
                 Format is a list of tuples, [ (sym_weight, [tet_vertices]),
                 ...]
 
@@ -805,9 +778,8 @@ class Kpoints(MSONable):
         VASP manual.
 
         Args:
-            subdivisions:
-                 Parameter determining number of subdivisions along each
-                 reciprocal lattice vector.
+            subdivisions: Parameter determining number of subdivisions along
+                each reciprocal lattice vector.
 
         Returns:
             Kpoints object
@@ -823,11 +795,9 @@ class Kpoints(MSONable):
         grid.
 
         Args:
-            kpts:
-                Subdivisions N_1, N_2 and N_3 along reciprocal lattice vectors.
-                Defaults to (1,1,1)
-            shift:
-                Shift to be applied to the kpoints. Defaults to (0,0,0).
+            kpts: Subdivisions N_1, N_2 and N_3 along reciprocal lattice
+                vectors. Defaults to (1,1,1)
+            shift: Shift to be applied to the kpoints. Defaults to (0,0,0).
 
         Returns:
             Kpoints object
@@ -843,11 +813,9 @@ class Kpoints(MSONable):
         grid.
 
         Args:
-            kpts:
-                Subdivisions N_1, N_2 and N_3 along reciprocal lattice vectors.
-                Defaults to (2,2,2)
-            shift:
-                Shift to be applied to the kpoints. Defaults to (0,0,0).
+            kpts: Subdivisions N_1, N_2 and N_3 along reciprocal lattice
+                vectors. Defaults to (2,2,2)
+            shift: Shift to be applied to the kpoints. Defaults to (0,0,0).
 
         Returns:
             Kpoints object
@@ -868,10 +836,11 @@ class Kpoints(MSONable):
             reciprocal lattice vector proportional to its length.
 
         Args:
-            structure:
-                Input structure
-            kppa:
-                Grid density
+            structure (Structure): Input structure
+            kppa (int): Grid density
+
+        Returns:
+            Kpoints
         """
 
         latt = structure.lattice
@@ -913,13 +882,49 @@ class Kpoints(MSONable):
         return Kpoints(comment, num_kpts, style, [num_div], [0, 0, 0])
 
     @staticmethod
+    def automatic_linemode(divisions, ibz):
+        """
+        Convenient static constructor for a KPOINTS in mode line_mode.
+        gamma centered Monkhorst-Pack grids and the number of subdivisions
+        along each reciprocal lattice vector determined by the scheme in the
+        VASP manual.
+
+        Args:
+            divisions: Parameter determining the number of k-points along each
+                hight symetry lines.
+            ibz: HighSymmKpath object (pymatgen.symmetry.bandstructure)
+
+        Returns:
+            Kpoints object
+        """
+        kpoints = list()
+        labels = list()
+        for path in ibz.kpath["path"]:
+            kpoints.append(ibz.kpath["kpoints"][path[0]])
+            labels.append(path[0])
+            for i in range(1, len(path) - 1):
+                kpoints.append(ibz.kpath["kpoints"][path[i]])
+                labels.append(path[i])
+                kpoints.append(ibz.kpath["kpoints"][path[i]])
+                labels.append(path[i])
+
+            kpoints.append(ibz.kpath["kpoints"][path[-1]])
+            labels.append(path[-1])
+
+        return Kpoints("Line_mode KPOINTS file",
+                       style=Kpoints.supported_modes.Line_mode,
+                       coord_type="Reciprocal",
+                       kpts=kpoints,
+                       labels=labels,
+                       num_kpts=int(divisions))
+
+    @staticmethod
     def from_file(filename):
         """
         Reads a Kpoints object from a KPOINTS file.
 
         Args:
-            filename:
-                filename to read from.
+            filename (str): filename to read from.
 
         Returns:
             Kpoints object
@@ -1020,21 +1025,22 @@ class Kpoints(MSONable):
         Write Kpoints to a file.
 
         Args:
-            filename:
-                filename to write to.
+            filename (str): Filename to write to.
         """
         with open(filename, "w") as f:
-            f.write(self.__str__() + "\n")
+            f.write(self.__str__())
 
     def __str__(self):
         lines = [self.comment, str(self.num_kpts), self.style]
         style = self.style.lower()[0]
-        if style == "Line-mode":
+        if style == "l":
             lines.append(self.coord_type)
         for i in xrange(len(self.kpts)):
             lines.append(" ".join([str(x) for x in self.kpts[i]]))
             if style == "l":
                 lines[-1] += " ! " + self.labels[i]
+                if i % 2 == 1:
+                    lines[-1] += "\n"
             elif self.num_kpts > 0:
                 if self.labels is not None:
                     lines[-1] += " %i %s" % (self.kpts_weights[i],
@@ -1055,14 +1061,19 @@ class Kpoints(MSONable):
         #Print shifts for automatic kpoints types if not zero.
         if self.num_kpts <= 0 and tuple(self.kpts_shift) != (0, 0, 0):
             lines.append(" ".join([str(x) for x in self.kpts_shift]))
-        return "\n".join(lines)
+        return "\n".join(lines) + "\n"
 
     @property
     def to_dict(self):
         """json friendly dict representation of Kpoints"""
         d = {"comment": self.comment, "nkpoints": self.num_kpts,
              "generation_style": self.style, "kpoints": self.kpts,
-             "usershift": self.kpts_shift}
+             "usershift": self.kpts_shift,
+             "kpts_weights": self.kpts_weights, "coord_type": self.coord_type,
+             "labels": self.labels, "tet_number": self.tet_number,
+             "tet_weight": self.tet_weight,
+             "tet_connections": self.tet_connections
+        }
         optional_paras = ["genvec1", "genvec2", "genvec3", "shift"]
         for para in optional_paras:
             if para in self.__dict__:
@@ -1080,7 +1091,13 @@ class Kpoints(MSONable):
         num_kpts = d.get("nkpoints", 0)
         #coord_type = d.get("coord_type", None)
         return cls(comment=comment, kpts=kpts, style=generation_style,
-                   kpts_shift=kpts_shift, num_kpts=num_kpts)
+                   kpts_shift=kpts_shift, num_kpts=num_kpts,
+                   kpts_weights=d.get("kpts_weights"),
+                   coord_type=d.get("coord_type"),
+                   labels=d.get("labels"), tet_number=d.get("tet_number", 0),
+                   tet_weight=d.get("tet_weight", 0),
+                   tet_connections=d.get("tet_connections")
+        )
 
 
 def get_potcar_dir():
@@ -1102,6 +1119,10 @@ class PotcarSingle(object):
     the POTCAR contains the complete untouched data in "data" as a string and
     a dict of keywords.
 
+    Args:
+        data:
+            Complete and single potcar file as a string.
+
     .. attribute:: data
 
         POTCAR data as a string.
@@ -1116,11 +1137,6 @@ class PotcarSingle(object):
                       "PW91": "POT_GGA_PAW_PW91", "LDA_US": "POT_LDA_US"}
 
     def __init__(self, data):
-        """
-        Args:
-            data:
-                Complete and single potcar file as a string.
-        """
         self.data = data  # raw POTCAR as a string
 
         # AJ (5/18/2012) - only search on relevant portion of POTCAR, should
@@ -1132,12 +1148,11 @@ class PotcarSingle(object):
         self.keywords = dict(keypairs)
 
     def __str__(self):
-        return self.data
+        return self.data + "\n"
 
     def write_file(self, filename):
-        writer = open(filename, "w")
-        writer.write(self.__str__() + "\n")
-        writer.close()
+        with zopen(filename, "w") as f:
+            f.write(self.__str__())
 
     @staticmethod
     def from_file(filename):
@@ -1148,11 +1163,12 @@ class PotcarSingle(object):
     def from_symbol_and_functional(symbol, functional="PBE"):
         funcdir = PotcarSingle.functional_dir[functional]
         paths_to_try = [os.path.join(get_potcar_dir(), funcdir,
-                                     "POTCAR.{}.gz".format(symbol)),
+                                     "POTCAR.{}".format(symbol)),
                         os.path.join(get_potcar_dir(), funcdir, symbol,
                                      "POTCAR")]
         for p in paths_to_try:
             p = os.path.expanduser(p)
+            p = zpath(p)
             if os.path.exists(p):
                 return PotcarSingle.from_file(p)
         raise IOError("You do not have the right POTCAR with functional " +
@@ -1208,23 +1224,19 @@ class Potcar(list):
     """
     Object for reading and writing POTCAR files for calculations. Consists of a
     list of PotcarSingle.
+
+    Args:
+        symbols ([str]): Element symbols for POTCAR. This should correspond
+            to the symbols used by VASP. E.g., "Mg", "Fe_pv", etc.
+        functional (str): Functional used.
+        sym_potcar_map (dict): Allows a user to specify a specific element
+            symbol to raw POTCAR mapping.
     """
 
     DEFAULT_FUNCTIONAL = "PBE"
 
     def __init__(self, symbols=None, functional=DEFAULT_FUNCTIONAL,
                  sym_potcar_map=None):
-        """
-        Args:
-            symbols:
-                Element symbols for POTCAR. This should correspond to the
-                symbols used by VASP. E.g., "Mg", "Fe_pv", etc.
-            functional:
-                Functional used.
-            sym_potcar_map:
-                Allows a user to specify a specific element symbol to raw
-                POTCAR mapping.
-        """
         super(Potcar, self).__init__()
         self.functional = functional
         if symbols is not None:
@@ -1265,18 +1277,17 @@ class Potcar(list):
         return potcar
 
     def __str__(self):
-        return "\n".join([str(potcar).strip("\n") for potcar in self])
+        return "\n".join([str(potcar).strip("\n") for potcar in self]) + "\n"
 
     def write_file(self, filename):
         """
         Write Potcar to a file.
 
         Args:
-            filename:
-                filename to write to.
+            filename (str): filename to write to.
         """
         with open(filename, "w") as f:
-            f.write(self.__str__() + "\n")
+            f.write(self.__str__())
 
     @property
     def symbols(self):
@@ -1293,14 +1304,11 @@ class Potcar(list):
         VASP_PSP_DIR or in a pymatgen.cfg or specified explicitly in a map.
 
         Args:
-            symbols:
-                A list of element symbols
-            functional:
-                (optional) the functional to use from the config file
-            sym_potcar_map:
-                (optional) a map of symbol:raw POTCAR string. If sym_potcar_map
-                is specified, POTCARs will be generated from the given map data
-                rather than the config file location.
+            symbols ([str]): A list of element symbols
+            functional (str): The functional to use from the config file
+            sym_potcar_map (dict): A map of symbol:raw POTCAR string. If
+                sym_potcar_map is specified, POTCARs will be generated from
+                the given map data rather than the config file location.
         """
         del self[:]
         if sym_potcar_map:
@@ -1315,25 +1323,19 @@ class Potcar(list):
 class VaspInput(dict, MSONable):
     """
     Class to contain a set of vasp input objects corresponding to a run.
+
+    Args:
+        incar: Incar object.
+        kpoints: Kpoints object.
+        poscar: Poscar object.
+        potcar: Potcar object.
+        optional_files: Other input files supplied as a dict of {
+            filename: object}. The object should follow standard pymatgen
+            conventions in implementing a to_dict and from_dict method.
     """
 
     def __init__(self, incar, kpoints, poscar, potcar, optional_files=None,
                  **kwargs):
-        """
-        Args:
-            incar:
-                Incar object.
-            kpoints:
-                Kpoints object.
-            poscar:
-                Poscar object.
-            potcar:
-                Potcar object.
-            optional_files:
-                Other input files supplied as a dict of {filename: object}.
-                The object should follow standard pymatgen conventions in
-                implementing a to_dict and from_dict method.
-        """
         super(VaspInput, self).__init__(**kwargs)
         self.update({'INCAR': incar,
                      'KPOINTS': kpoints,
@@ -1373,10 +1375,10 @@ class VaspInput(dict, MSONable):
         Write VASP input to a directory.
 
         Args:
-            output_dir:
-                Directory to write to. Defaults to current directory (".").
-            make_dir_if_not_present:
-                Create the directory if not present. Defaults to True.
+            output_dir (str): Directory to write to. Defaults to current
+                directory (".").
+            make_dir_if_not_present (bool): Create the directory if not
+                present. Defaults to True.
         """
         if make_dir_if_not_present and not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -1392,17 +1394,16 @@ class VaspInput(dict, MSONable):
         optional_filenames is specified.
 
         Args:
-            input_dir:
-                Directory to read VASP input from.
-            optional_files:
-                Optional files to read in as well as a dict of {filename:
-                Object type}. Object type must have a static method from_file.
+            input_dir (str): Directory to read VASP input from.
+            optional_files (dict): Optional files to read in as well as a
+                dict of {filename: Object type}. Object type must have a
+                static method from_file.
         """
         sub_d = {}
         for fname, ftype in [("INCAR", Incar), ("KPOINTS", Kpoints),
                              ("POSCAR", Poscar), ("POTCAR", Potcar)]:
-            sub_d[fname.lower()] = ftype.from_file(os.path.join(input_dir,
-                                                                fname))
+            fullzpath = zpath(os.path.join(input_dir, fname))
+            sub_d[fname.lower()] = ftype.from_file(fullzpath)
         sub_d["optional_files"] = {}
         if optional_files is not None:
             for fname, ftype in optional_files.items():

@@ -22,7 +22,6 @@ from numpy.linalg import inv
 from numpy import pi, dot, transpose, radians
 
 from pymatgen.serializers.json_coders import MSONable
-from pymatgen.util.coord_utils import get_points_in_sphere_pbc
 
 
 class Lattice(MSONable):
@@ -39,14 +38,12 @@ class Lattice(MSONable):
         lattice vector.
 
         Args:
-            matrix:
-                Sequence of numbers in any form. Examples of acceptable
+            matrix: Sequence of numbers in any form. Examples of acceptable
                 input.
                 i) An actual numpy array.
                 ii) [[1, 0, 0],[0, 1, 0], [0, 0, 1]]
                 iii) [1, 0, 0 , 0, 1, 0, 0, 0, 1]
                 iv) (1, 0, 0, 0, 1, 0, 0, 0, 1)
-
                 Each row should correspond to a lattice vector.
                 E.g., [[10,0,0], [20,10,0], [0,0,30]] specifies a lattice with
                 lattice vectors [10,0,0], [20,10,0] and [0,0,30].
@@ -65,6 +62,7 @@ class Lattice(MSONable):
         self._matrix = m
         # The inverse matrix is lazily generated for efficiency.
         self._inv_matrix = None
+        self._metric_tensor = None
 
     def copy(self):
         """Deep copy of self."""
@@ -81,13 +79,18 @@ class Lattice(MSONable):
             self._inv_matrix = inv(self._matrix)
         return self._inv_matrix
 
+    @property
+    def metric_tensor(self):
+        if self._metric_tensor is None:
+            self._metric_tensor = np.dot(self._matrix, self._matrix.T)
+        return self._metric_tensor
+
     def get_cartesian_coords(self, fractional_coords):
         """
         Returns the cartesian coordinates given fractional coordinates.
 
         Args:
-            Fractional_coords:
-                Fractional coords.
+            fractional_coords (3x1 array): Fractional coords.
 
         Returns:
             Cartesian coordinates
@@ -99,8 +102,7 @@ class Lattice(MSONable):
         Returns the fractional coordinates given cartesian coordinates.
 
         Args:
-            cartesian_coords:
-                Cartesian coords.
+            cartesian_coords (3x1 array): Cartesian coords.
 
         Returns:
             Fractional coordinates.
@@ -113,8 +115,7 @@ class Lattice(MSONable):
         Convenience constructor for a cubic lattice.
 
         Args:
-            a:
-                The *a* lattice parameter of the cubic cell.
+            a (float): The *a* lattice parameter of the cubic cell.
 
         Returns:
             Cubic lattice of dimensions a x a x a.
@@ -127,10 +128,8 @@ class Lattice(MSONable):
         Convenience constructor for a tetragonal lattice.
 
         Args:
-            a:
-                The *a* lattice parameter of the tetragonal cell.
-            c:
-                The *c* lattice parameter of the tetragonal cell.
+            a (float): *a* lattice parameter of the tetragonal cell.
+            c (float): *c* lattice parameter of the tetragonal cell.
 
         Returns:
             Tetragonal lattice of dimensions a x a x c.
@@ -143,12 +142,9 @@ class Lattice(MSONable):
         Convenience constructor for an orthorhombic lattice.
 
         Args:
-            a:
-                The *a* lattice parameter of the orthorhombic cell.
-            b:
-                The *b* lattice parameter of the orthorhombic cell.
-            c:
-                The *c* lattice parameter of the orthorhombic cell.
+            a (float): *a* lattice parameter of the orthorhombic cell.
+            b (float): *b* lattice parameter of the orthorhombic cell.
+            c (float): *c* lattice parameter of the orthorhombic cell.
 
         Returns:
             Orthorhombic lattice of dimensions a x b x c.
@@ -161,14 +157,11 @@ class Lattice(MSONable):
         Convenience constructor for a monoclinic lattice.
 
         Args:
-            a:
-                The *a* lattice parameter of the monoclinc cell.
-            b:
-                The *b* lattice parameter of the monoclinc cell.
-            c:
-                The *c* lattice parameter of the monoclinc cell.
-            alpha:
-                The *alpha* angle between lattice vectors b and c.
+            a (float): *a* lattice parameter of the monoclinc cell.
+            b (float): *b* lattice parameter of the monoclinc cell.
+            c (float): *c* lattice parameter of the monoclinc cell.
+            alpha (float): *alpha* angle between lattice vectors b and c in
+                degrees.
 
         Returns:
             Monoclinic lattice of dimensions a x b x c with angle alpha between
@@ -182,10 +175,8 @@ class Lattice(MSONable):
         Convenience constructor for a hexagonal lattice.
 
         Args:
-            a:
-                The *a* lattice parameter of the hexagonal cell.
-            c:
-                The *c* lattice parameter of the hexagonal cell.
+            a (float): *a* lattice parameter of the hexagonal cell.
+            c (float): *c* lattice parameter of the hexagonal cell.
 
         Returns:
             Hexagonal lattice of dimensions a x a x c.
@@ -198,10 +189,8 @@ class Lattice(MSONable):
         Convenience constructor for a rhombohedral lattice.
 
         Args:
-            a:
-                The *a* lattice parameter of the rhombohedral cell.
-            alpha:
-                Angle for the rhombohedral lattice.
+            a (float): *a* lattice parameter of the rhombohedral cell.
+            alpha (float): Angle for the rhombohedral lattice in degrees.
 
         Returns:
             Rhombohedral lattice of dimensions a x a x a.
@@ -214,10 +203,8 @@ class Lattice(MSONable):
         Create a Lattice using unit cell lengths and angles (in degrees).
 
         Args:
-            abc:
-                lattice parameters, e.g. (4, 4, 5).
-            ang:
-                lattice angles in degrees, e.g., (90,90,120).
+            abc (3x1 array): Lattice parameters, e.g. (4, 4, 5).
+            ang (3x1 array): Lattice angles in degrees, e.g., (90,90,120).
 
         Returns:
             A Lattice with the specified lattice parameters.
@@ -231,21 +218,15 @@ class Lattice(MSONable):
         Create a Lattice using unit cell lengths and angles (in degrees).
 
         Args:
-            a:
-                The *a* lattice parameter of the monoclinc cell.
-            b:
-                The *b* lattice parameter of the monoclinc cell.
-            c:
-                The *c* lattice parameter of the monoclinc cell.
-            alpha:
-                The *alpha* angle.
-            beta:
-                The *beta* angle.
-            gamma:
-                The *gamma* angle.
+            a (float): *a* lattice parameter.
+            b (float): *b* lattice parameter.
+            c (float): *c* lattice parameter.
+            alpha (float): *alpha* angle in degrees.
+            beta (float): *beta* angle in degrees.
+            gamma (float): *gamma* angle in degrees.
 
         Returns:
-            A Lattice with the specified lattice parameters.
+            Lattice with the specified lattice parameters.
         """
 
         alpha_r = radians(alpha)
@@ -414,12 +395,10 @@ class Lattice(MSONable):
         other_lattice to this lattice.
 
         Args:
-            other_lattice:
-                Another lattice that is equivalent to this one.
-            ltol:
-                Tolerance for matching lengths. Defaults to 1e-5.
-            atol:
-                Tolerance for matching angles. Defaults to 1.
+            other_lattice (Lattice): Another lattice that is equivalent to
+                this one.
+            ltol (float): Tolerance for matching lengths. Defaults to 1e-5.
+            atol (float): Tolerance for matching angles. Defaults to 1.
 
         Returns:
             (aligned_lattice, rotation_matrix, scale_matrix) if a mapping is
@@ -438,8 +417,8 @@ class Lattice(MSONable):
         (lengths, angles) = other_lattice.lengths_and_angles
         (alpha, beta, gamma) = angles
 
-        points = get_points_in_sphere_pbc(self, [[0, 0, 0]], [0, 0, 0],
-                                          max(lengths) + 0.1)
+        points = self.get_points_in_sphere([[0, 0, 0]], [0, 0, 0],
+                                           max(lengths) + 0.1)
         all_frac = [p[0] for p in points]
         dist = [p[1] for p in points]
         cart = self.get_cartesian_coords(all_frac)
@@ -530,8 +509,8 @@ class Lattice(MSONable):
         possible, with "good" defined by orthongonality of the lattice vectors.
 
         Args:
-            delta:
-                Reduction parameter. Default of 0.75 is usually fine.
+            delta (float): Reduction parameter. Default of 0.75 is usually
+                fine.
 
         Returns:
             Reduced lattice.
@@ -604,9 +583,8 @@ class Lattice(MSONable):
         60(1), 1-6. doi:10.1107/S010876730302186X
 
         Args:
-            tol:
-                The numerical tolerance. The default of 1e-5 should result in
-                stable behavior for most cases.
+            tol (float): The numerical tolerance. The default of 1e-5 should
+                result in stable behavior for most cases.
 
         Returns:
             Niggli-reduced lattice.
@@ -785,11 +763,9 @@ class Lattice(MSONable):
         Compute the scalar product of vector(s).
 
         Args:
-            coords_a, coords_b:
-                Array-like objects with the coordinates.
-            frac_coords:
-                Boolean stating whether the vector corresponds to fractional or
-                cartesian coordinates.
+            coords_a, coords_b: Array-like objects with the coordinates.
+            frac_coords (bool): Boolean stating whether the vector
+                corresponds to fractional or cartesian coordinates.
 
         Returns:
             one-dimensional `numpy` array.
@@ -828,3 +804,113 @@ class Lattice(MSONable):
             one-dimensional `numpy` array.
         """
         return np.sqrt(self.dot(coords, coords, frac_coords=frac_coords))
+
+    def get_points_in_sphere(self, frac_points, center, r):
+        """
+        Find all points within a sphere from the point taking into account
+        periodic boundary conditions. This includes sites in other periodic images.
+
+        Algorithm:
+
+        1. place sphere of radius r in crystal and determine minimum supercell
+           (parallelpiped) which would contain a sphere of radius r. for this
+           we need the projection of a_1 on a unit vector perpendicular
+           to a_2 & a_3 (i.e. the unit vector in the direction b_1) to
+           determine how many a_1"s it will take to contain the sphere.
+
+           Nxmax = r * length_of_b_1 / (2 Pi)
+
+        2. keep points falling within r.
+
+        Args:
+            frac_points: All points in the lattice in fractional coordinates.
+            center: Cartesian coordinates of center of sphere.
+            r: radius of sphere.
+
+        Returns:
+            [(fcoord, dist) ...] since most of the time, subsequent processing
+            requires the distance.
+        """
+        recp_len = np.array(self.reciprocal_lattice.abc)
+        sr = r + 0.15
+        nmax = sr * recp_len / (2 * math.pi)
+        pcoords = self.get_fractional_coords(center)
+        floor = math.floor
+
+        n = len(frac_points)
+        fcoords = np.array(frac_points)
+        pts = np.tile(center, (n, 1))
+        indices = np.array(range(n))
+
+        arange = np.arange(start=int(floor(pcoords[0] - nmax[0])),
+                           stop=int(floor(pcoords[0] + nmax[0])) + 1)
+        brange = np.arange(start=int(floor(pcoords[1] - nmax[1])),
+                           stop=int(floor(pcoords[1] + nmax[1])) + 1)
+        crange = np.arange(start=int(floor(pcoords[2] - nmax[2])),
+                           stop=int(floor(pcoords[2] + nmax[2])) + 1)
+
+        arange = arange[:, None] * np.array([1, 0, 0])[None, :]
+        brange = brange[:, None] * np.array([0, 1, 0])[None, :]
+        crange = crange[:, None] * np.array([0, 0, 1])[None, :]
+
+        images = arange[:, None, None] + brange[None, :, None] +\
+            crange[None, None, :]
+
+        shifted_coords = fcoords[:, None, None, None, :] + images[None, :, :, :, :]
+        coords = self.get_cartesian_coords(shifted_coords)
+        dists = np.sqrt(np.sum((coords - pts[:, None, None, None, :]) ** 2,
+                               axis=4))
+        within_r = np.where(dists <= r)
+
+        d = [shifted_coords[within_r], dists[within_r], indices[within_r[0]]]
+
+        return np.transpose(d)
+
+    def get_all_distances(self, fcoords1, fcoords2):
+        """
+        Returns the distances between two lists of coordinates taking into
+        account periodic boundary conditions and the lattice. Note that this
+        computes an MxN array of distances (i.e. the distance between each
+        point in fcoords1 and every coordinate in fcoords2). This is
+        different functionality from pbc_diff.
+
+        Args:
+            fcoords1: First set of fractional coordinates. e.g., [0.5, 0.6,
+                0.7] or [[1.1, 1.2, 4.3], [0.5, 0.6, 0.7]]. It can be a single
+                coord or any array of coords.
+            fcoords2: Second set of fractional coordinates.
+
+        Returns:
+            2d array of cartesian distances. E.g the distance between
+            fcoords1[i] and fcoords2[j] is distances[i,j]
+        """
+        #ensure correct shape
+        fcoords1, fcoords2 = np.atleast_2d(fcoords1, fcoords2)
+
+        #ensure that all points are in the unit cell
+        fcoords1 = np.mod(fcoords1, 1)
+        fcoords2 = np.mod(fcoords2, 1)
+
+        #create images, 2d array of all length 3 combinations of [-1,0,1]
+        r = np.arange(-1, 2)
+        arange = r[:, None] * np.array([1, 0, 0])[None, :]
+        brange = r[:, None] * np.array([0, 1, 0])[None, :]
+        crange = r[:, None] * np.array([0, 0, 1])[None, :]
+        images = arange[:, None, None] + brange[None, :, None] +\
+            crange[None, None, :]
+        images = images.reshape((27, 3))
+
+        #create images of f2
+        shifted_f2 = fcoords2[:, None, :] + images[None, :, :]
+
+        cart_f1 = self.get_cartesian_coords(fcoords1)
+        cart_f2 = self.get_cartesian_coords(shifted_f2)
+
+        #all vectors from f1 to f2
+        vectors = cart_f2[None, :, :, :] - cart_f1[:, None, None, :]
+
+        d_2 = np.sum(vectors ** 2, axis=3)
+
+        distances = np.min(d_2, axis=2) ** 0.5
+
+        return distances

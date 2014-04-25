@@ -17,6 +17,8 @@ __date__ = "Nov 27, 2011"
 
 import numpy as np
 import math
+from monty.dev import deprecated
+from pymatgen.core.lattice import Lattice
 
 
 def find_in_coord_list(coord_list, coord, atol=1e-8):
@@ -24,13 +26,10 @@ def find_in_coord_list(coord_list, coord, atol=1e-8):
     Find the indices of matches of a particular coord in a coord_list.
 
     Args:
-        coord_list:
-            List of coords to test
-        coord:
-            Specific coordinates
-        atol:
-            Absolute tolerance. Defaults to 1e-8.
-            Accepts both scalar and array
+        coord_list: List of coords to test
+        coord: Specific coordinates
+        atol: Absolute tolerance. Defaults to 1e-8. Accepts both scalar and
+            array.
 
     Returns:
         Indices of matches, e.g., [0, 1, 2, 3]. Empty list if not found.
@@ -46,18 +45,89 @@ def in_coord_list(coord_list, coord, atol=1e-8):
     Tests if a particular coord is within a coord_list.
 
     Args:
-        coord_list:
-            List of coords to test
-        coord:
-            Specific coordinates
-        atol:
-            Absolute tolerance. Defaults to 1e-8.
-            Accepts both scalar and array
+        coord_list: List of coords to test
+        coord: Specific coordinates
+        atol: Absolute tolerance. Defaults to 1e-8. Accepts both scalar and
+            array.
 
     Returns:
         True if coord is in the coord list.
     """
     return len(find_in_coord_list(coord_list, coord, atol=atol)) > 0
+
+
+def is_coord_subset(subset, superset, atol=1e-8):
+    """
+    Tests if all coords in subset are contained in superset.
+    Doesn't use periodic boundary conditions
+
+    Args:
+        subset, superset: List of coords
+
+    Returns:
+        True if all of subset is in superset.
+    """
+    c1 = np.array(subset)
+    c2 = np.array(superset)
+    is_close = np.all(np.abs(c1[:, None, :] - c2[None, :, :]) < atol, axis=-1)
+    any_close = np.any(is_close, axis=-1)
+    return np.all(any_close)
+
+
+def coord_list_mapping(subset, superset):
+    """
+    Gives the index mapping from a subset to a superset.
+    Subset and superset cannot contain duplicate rows
+
+    Args:
+        subset, superset: List of coords
+
+    Returns:
+        list of indices such that superset[indices] = subset
+    """
+    c1 = np.array(subset)
+    c2 = np.array(superset)
+    inds = np.where(np.all(np.isclose(c1[:, None, :], c2[None, :, :]),
+                           axis=2))[1]
+    result = c2[inds]
+    if not np.allclose(c1, result):
+        if not is_coord_subset(subset, superset):
+            raise ValueError("subset is not a subset of superset")
+    if not result.shape == c1.shape:
+        raise ValueError("Something wrong with the inputs, likely duplicates "
+                         "in superset")
+    return inds
+
+
+def coord_list_mapping_pbc(subset, superset, atol=1e-8):
+    """
+    Gives the index mapping from a subset to a superset.
+    Subset and superset cannot contain duplicate rows
+
+    Args:
+        subset, superset: List of frac_coords
+
+    Returns:
+        list of indices such that superset[indices] = subset
+    """
+    c1 = np.array(subset)
+    c2 = np.array(superset)
+
+    diff = c1[:, None, :] - c2[None, :, :]
+    diff -= np.round(diff)
+    inds = np.where(np.all(np.abs(diff) < atol, axis = 2))[1]
+
+    #verify result (its easier to check validity of the result than
+    #the validity of inputs)
+    test = c2[inds] - c1
+    test -= np.round(test)
+    if not np.allclose(test, 0):
+        if not is_coord_subset_pbc(subset, superset):
+            raise ValueError("subset is not a subset of superset")
+    if not test.shape == c1.shape:
+        raise ValueError("Something wrong with the inputs, likely duplicates "
+                         "in superset")
+    return inds
 
 
 def get_linear_interpolated_value(x_values, y_values, x):
@@ -67,12 +137,9 @@ def get_linear_interpolated_value(x_values, y_values, x):
     threading servers.
 
     Args:
-        x_values:
-            Sequence of x values.
-        y_values:
-            Corresponding sequence of y values
-        x:
-            Get value at particular x
+        x_values: Sequence of x values.
+        y_values: Corresponding sequence of y values
+        x: Get value at particular x
 
     Returns:
         Value at x.
@@ -91,18 +158,34 @@ def get_linear_interpolated_value(x_values, y_values, x):
     return y1 + (y2 - y1) / (x2 - x1) * (x - x1)
 
 
+def all_distances(coords1, coords2):
+    """
+    Returns the distances between two lists of coordinates
+
+    Args:
+        coords1: First set of cartesian coordinates.
+        coords2: Second set of cartesian coordinates.
+
+    Returns:
+        2d array of cartesian distances. E.g the distance between
+        coords1[i] and coords2[j] is distances[i,j]
+    """
+    c1 = np.array(coords1)
+    c2 = np.array(coords2)
+    z = (c1[:, None, :] - c2[None, :, :]) ** 2
+    return np.sum(z, axis=-1) ** 0.5
+
+
 def pbc_diff(fcoords1, fcoords2):
     """
     Returns the 'fractional distance' between two coordinates taking into
     account periodic boundary conditions.
 
     Args:
-        fcoords1:
-            First set of fractional coordinates. e.g., [0.5, 0.6,
+        fcoords1: First set of fractional coordinates. e.g., [0.5, 0.6,
             0.7] or [[1.1, 1.2, 4.3], [0.5, 0.6, 0.7]]. It can be a single
             coord or any array of coords.
-        fcoords2:
-            Second set of fractional coordinates.
+        fcoords2: Second set of fractional coordinates.
 
     Returns:
         Fractional distance. Each coordinate must have the property that
@@ -114,6 +197,7 @@ def pbc_diff(fcoords1, fcoords2):
     return fdist - np.round(fdist)
 
 
+@deprecated(Lattice.get_all_distances)
 def pbc_all_distances(lattice, fcoords1, fcoords2):
     """
     Returns the distances between two lists of coordinates taking into
@@ -123,49 +207,17 @@ def pbc_all_distances(lattice, fcoords1, fcoords2):
     different functionality from pbc_diff.
 
     Args:
-        lattice:
-            lattice to use
-        fcoords1:
-            First set of fractional coordinates. e.g., [0.5, 0.6,
+        lattice: lattice to use
+        fcoords1: First set of fractional coordinates. e.g., [0.5, 0.6,
             0.7] or [[1.1, 1.2, 4.3], [0.5, 0.6, 0.7]]. It can be a single
             coord or any array of coords.
-        fcoords2:
-            Second set of fractional coordinates.
+        fcoords2: Second set of fractional coordinates.
 
     Returns:
         2d array of cartesian distances. E.g the distance between
         fcoords1[i] and fcoords2[j] is distances[i,j]
     """
-    #ensure correct shape
-    fcoords1, fcoords2 = np.atleast_2d(fcoords1, fcoords2)
-
-    #ensure that all points are in the unit cell
-    fcoords1 = np.mod(fcoords1, 1)
-    fcoords2 = np.mod(fcoords2, 1)
-
-    #create images, 2d array of all length 3 combinations of [-1,0,1]
-    r = np.arange(-1, 2)
-    arange = r[:, None] * np.array([1, 0, 0])[None, :]
-    brange = r[:, None] * np.array([0, 1, 0])[None, :]
-    crange = r[:, None] * np.array([0, 0, 1])[None, :]
-    images = arange[:, None, None] + brange[None, :, None] +\
-        crange[None, None, :]
-    images = images.reshape((27, 3))
-
-    #create images of f2
-    shifted_f2 = fcoords2[:, None, :] + images[None, :, :]
-
-    cart_f1 = lattice.get_cartesian_coords(fcoords1)
-    cart_f2 = lattice.get_cartesian_coords(shifted_f2)
-
-    #all vectors from f1 to f2
-    vectors = cart_f2[None, :, :, :] - cart_f1[:, None, None, :]
-
-    d_2 = np.sum(vectors ** 2, axis=3)
-
-    distances = np.min(d_2, axis=2) ** 0.5
-
-    return distances
+    return lattice.get_all_distances(fcoords1, fcoords2)
 
 
 def pbc_shortest_vectors(lattice, fcoords1, fcoords2):
@@ -174,14 +226,11 @@ def pbc_shortest_vectors(lattice, fcoords1, fcoords2):
     account periodic boundary conditions and the lattice.
 
     Args:
-        lattice:
-            lattice to use
-        fcoords1:
-            First set of fractional coordinates. e.g., [0.5, 0.6,
-            0.7] or [[1.1, 1.2, 4.3], [0.5, 0.6, 0.7]]. It can be a single
+        lattice: lattice to use
+        fcoords1: First set of fractional coordinates. e.g., [0.5, 0.6, 0.7]
+            or [[1.1, 1.2, 4.3], [0.5, 0.6, 0.7]]. It can be a single
             coord or any array of coords.
-        fcoords2:
-            Second set of fractional coordinates.
+        fcoords2: Second set of fractional coordinates.
 
     Returns:
         array of displacement vectors from fcoords1 to fcoords2
@@ -224,12 +273,9 @@ def find_in_coord_list_pbc(fcoord_list, fcoord, atol=1e-8):
     periodic boundary conditions.
 
     Args:
-        fcoord_list:
-            List of fractional coords
-        fcoord:
-            A specific fractional coord to test.
-        atol:
-            Absolute tolerance. Defaults to 1e-8.
+        fcoord_list: List of fractional coords
+        fcoord: A specific fractional coord to test.
+        atol: Absolute tolerance. Defaults to 1e-8.
 
     Returns:
         Indices of matches, e.g., [0, 1, 2, 3]. Empty list if not found.
@@ -247,12 +293,9 @@ def in_coord_list_pbc(fcoord_list, fcoord, atol=1e-8):
     Tests if a particular fractional coord is within a fractional coord_list.
 
     Args:
-        fcoord_list:
-            List of fractional coords to test
-        fcoord:
-            A specific fractional coord to test.
-        atol:
-            Absolute tolerance. Defaults to 1e-8.
+        fcoord_list: List of fractional coords to test
+        fcoord: A specific fractional coord to test.
+        atol: Absolute tolerance. Defaults to 1e-8.
 
     Returns:
         True if coord is in the coord list.
@@ -260,6 +303,26 @@ def in_coord_list_pbc(fcoord_list, fcoord, atol=1e-8):
     return len(find_in_coord_list_pbc(fcoord_list, fcoord, atol=atol)) > 0
 
 
+def is_coord_subset_pbc(subset, superset, atol=1e-8):
+    """
+    Tests if all fractional coords in subset are contained in superset.
+
+    Args:
+        subset, superset: List of fractional coords
+
+    Returns:
+        True if all of subset is in superset.
+    """
+    c1 = np.array(subset)
+    c2 = np.array(superset)
+    dist = c1[:, None, :] - c2[None, :, :]
+    dist -= np.round(dist)
+    is_close = np.all(np.abs(dist) < atol, axis=-1)
+    any_close = np.any(is_close, axis=-1)
+    return np.all(any_close)
+
+
+@deprecated(Lattice.get_points_in_sphere)
 def get_points_in_sphere_pbc(lattice, frac_points, center, r):
     """
     Find all points within a sphere from the point taking into account
@@ -278,53 +341,53 @@ def get_points_in_sphere_pbc(lattice, frac_points, center, r):
     2. keep points falling within r.
 
     Args:
-        lattice:
-            The lattice/basis for the periodic boundary conditions.
-        frac_points:
-            All points in the lattice in fractional coordinates.
-        center:
-            cartesian coordinates of center of sphere.
-        r:
-            radius of sphere.
+        lattice: The lattice/basis for the periodic boundary conditions.
+        frac_points: All points in the lattice in fractional coordinates.
+        center: Cartesian coordinates of center of sphere.
+        r: radius of sphere.
 
     Returns:
         [(fcoord, dist) ...] since most of the time, subsequent processing
         requires the distance.
     """
-    recp_len = np.array(lattice.reciprocal_lattice.abc)
-    sr = r + 0.15
-    nmax = sr * recp_len / (2 * math.pi)
-    pcoords = lattice.get_fractional_coords(center)
-    floor = math.floor
+    return lattice.get_points_in_sphere(frac_points, center, r)
 
-    n = len(frac_points)
-    fcoords = np.array(frac_points)
-    pts = np.tile(center, (n, 1))
-    indices = np.array(range(n))
 
-    arange = np.arange(start=int(floor(pcoords[0] - nmax[0])),
-                       stop=int(floor(pcoords[0] + nmax[0])) + 1)
-    brange = np.arange(start=int(floor(pcoords[1] - nmax[1])),
-                       stop=int(floor(pcoords[1] + nmax[1])) + 1)
-    crange = np.arange(start=int(floor(pcoords[2] - nmax[2])),
-                       stop=int(floor(pcoords[2] + nmax[2])) + 1)
+def lattice_points_in_supercell(supercell_matrix):
+    """
+    Returns the list of points on the original lattice contained in the
+    supercell in fractional coordinates (with the supercell basis).
+    e.g. [[2,0,0],[0,1,0],[0,0,1]] returns [[0,0,0],[0.5,0,0]]
 
-    arange = arange[:, None] * np.array([1, 0, 0])[None, :]
-    brange = brange[:, None] * np.array([0, 1, 0])[None, :]
-    crange = crange[:, None] * np.array([0, 0, 1])[None, :]
+    Args:
+        supercell_matrix: 3x3 matrix describing the supercell
 
-    images = arange[:, None, None] + brange[None, :, None] +\
-        crange[None, None, :]
+    Returns:
+        numpy array of the fractional coordinates
+    """
+    diagonals = np.array(
+        [[0, 0, 0], [0, 0, 1], [0, 1, 0], [0, 1, 1], [1, 0, 0], [1, 0, 1],
+         [1, 1, 0], [1, 1, 1]])
+    d_points = np.dot(diagonals, supercell_matrix)
 
-    shifted_coords = fcoords[:, None, None, None, :] + images[None, :, :, :, :]
-    coords = lattice.get_cartesian_coords(shifted_coords)
-    dists = np.sqrt(np.sum((coords - pts[:, None, None, None, :]) ** 2,
-                           axis=4))
-    within_r = np.where(dists <= r)
+    minimax = np.array([np.min(d_points, axis=0), np.max(d_points, axis=0) + 1])
 
-    d = [shifted_coords[within_r], dists[within_r], indices[within_r[0]]]
+    ar = np.arange(minimax[0, 0], minimax[1, 0])[:, None] * \
+         np.array([1, 0, 0])[None, :]
+    br = np.arange(minimax[0, 1], minimax[1, 1])[:, None] * \
+         np.array([0, 1, 0])[None, :]
+    cr = np.arange(minimax[0, 2], minimax[1, 2])[:, None] * \
+         np.array([0, 0, 1])[None, :]
 
-    return np.transpose(d)
+    all_points = ar[:, None, None] + br[None, :, None] + cr[None, None, :]
+    all_points = all_points.reshape((-1, 3))
+
+    frac_points = np.dot(all_points, np.linalg.inv(supercell_matrix))
+
+    tvects = frac_points[np.where(np.all(frac_points < 1 - 1e-10, axis=1)
+                                  & np.all(frac_points >= -1e-10, axis=1))]
+    assert len(tvects) == np.round(np.abs(np.linalg.det(supercell_matrix)))
+    return tvects
 
 
 def barycentric_coords(coords, simplex):
@@ -333,10 +396,8 @@ def barycentric_coords(coords, simplex):
     simplex with d+1 points. Only works for d >= 2.
 
     Args:
-        coords:
-            list of n coords to transform, shape should be (n,d)
-        simplex:
-            list of coordinates that form the simplex, shape should be
+        coords: list of n coords to transform, shape should be (n,d)
+        simplex: list of coordinates that form the simplex, shape should be
             (d+1, d)
 
     Returns:
@@ -356,12 +417,9 @@ def get_angle(v1, v2, units="degrees"):
     Calculates the angle between two vectors.
 
     Args:
-        v1:
-            Vector 1
-        v2:
-            Vector 2
-        units:
-            "degrees" or "radians". Defaults to "degrees".
+        v1: Vector 1
+        v2: Vector 2
+        units: "degrees" or "radians". Defaults to "degrees".
 
     Returns:
         Angle between them in degrees.

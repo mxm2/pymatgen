@@ -47,9 +47,10 @@ class PDAnalyzer(object):
 
     def __init__(self, pd):
         """
+        Initializes analyzer with a PhaseDiagram.
+
         Args:
-            pd:
-                Phase Diagram to analyze.
+            pd: Phase Diagram to analyze.
         """
         self._pd = pd
 
@@ -66,16 +67,13 @@ class PDAnalyzer(object):
         Checks if a composition is in a facet.
 
         Args:
-            facet:
-                facet to test.
-            comp:
-                Composition to test.
+            facet: facet to test.
+            comp: Composition to test.
         """
         els = self._pd.elements
         dim = len(els)
         if dim > 1:
-            coords = [np.array(self._pd.qhull_data[f][0:dim - 1])
-                      for f in facet]
+            coords = self._pd.qhull_data[facet, :-1]
             simplex = Simplex(coords)
             comp_point = [comp.get_atomic_fraction(e) for e in els[1:]]
             return simplex.in_simplex(comp_point, PDAnalyzer.numerical_tol)
@@ -102,8 +100,7 @@ class PDAnalyzer(object):
         Provides the decomposition at a particular composition
 
         Args:
-            comp:
-                A composition
+            comp: A composition
 
         Returns:
             Decomposition as a dict of {Entry: amount}
@@ -122,11 +119,9 @@ class PDAnalyzer(object):
         Provides the decomposition and energy above convex hull for an entry
 
         Args:
-            entry:
-                A PDEntry like object
-            allow_negative:
-                Whether to allow negative e_above_hulls. Used to calculate
-                equilibrium reaction energies. Default False.
+            entry: A PDEntry like object
+            allow_negative: Whether to allow negative e_above_hulls. Used to
+                calculate equilibrium reaction energies. Defaults to False.
 
         Returns:
             (decomp, energy above convex hull)  Stable entries should have
@@ -158,7 +153,7 @@ class PDAnalyzer(object):
         Provides the energy above convex hull for an entry
 
         Args:
-            entry - A PDEntry like object
+            entry: A PDEntry like object
 
         Returns:
             Energy above convex hull of entry. Stable entries should have
@@ -173,8 +168,7 @@ class PDAnalyzer(object):
         hull).
 
         Args:
-            entry:
-                A PDEntry like object
+            entry: A PDEntry like object
 
         Returns:
             Equilibrium reaction energy of entry. Stable entries should have
@@ -196,8 +190,7 @@ class PDAnalyzer(object):
         Calculates the chemical potentials for each element within a facet.
 
         Args:
-            facet:
-                Facet of the phase diagram.
+            facet: Facet of the phase diagram.
 
         Returns:
             { element: chempot } for all elements in the phase diagram.
@@ -225,8 +218,7 @@ class PDAnalyzer(object):
         Diagram.
 
         Args:
-            element:
-                An element. Has to be in the PD in the first place.
+            element: An element. Has to be in the PD in the first place.
 
         Returns:
             A sorted sequence of critical chemical potentials, from less
@@ -259,14 +251,11 @@ class PDAnalyzer(object):
         evolution by varying uO2.
 
         Args:
-            element:
-                An element. Must be in the phase diagram.
-            comp:
-                A Composition
-            comp_tol:
-                The tolerance to use when calculating decompositions. Phases
-                with amounts less than this tolerance are excluded. Defaults to
-                1e-5.
+            element: An element. Must be in the phase diagram.
+            comp: A Composition
+            comp_tol: The tolerance to use when calculating decompositions.
+                Phases with amounts less than this tolerance are excluded.
+                Defaults to 1e-5.
 
         Returns:
             Evolution data as a list of dictionaries of the following format:
@@ -317,16 +306,17 @@ class PDAnalyzer(object):
                                   'reaction': rxn, 'entries': decomp_entries})
         return evolution
 
-    def get_chempot_range_map(self, elements):
+    def get_chempot_range_map(self, elements, referenced=True):
         """
         Returns a chemical potential range map for each stable entry.
 
         Args:
-            elements:
-                Sequence of elements to be considered as independent variables.
-                E.g., if you want to show the stability ranges of all Li-Co-O
-                phases wrt to uLi and uO, you will supply
+            elements: Sequence of elements to be considered as independent
+                variables. E.g., if you want to show the stability ranges
+                of all Li-Co-O phases wrt to uLi and uO, you will supply
                 [Element("Li"), Element("O")]
+            referenced: if True, gives the results with a reference being the
+            energy of the elemental phase. If False, gives absolute values.
 
         Returns:
             Returns a dict of the form {entry: [simplices]}. The list of
@@ -340,11 +330,15 @@ class PDAnalyzer(object):
             chempots = self.get_facet_chempots(facet)
             all_chempots.append([chempots[el] for el in pd.elements])
         inds = [pd.elements.index(el) for el in elements]
-
-        el_energies = {el: pd.el_refs[el].energy_per_atom
-                       for el in elements}
+        el_energies = {el: 0.0 for el in elements}
+        if referenced:
+            el_energies = {el: pd.el_refs[el].energy_per_atom
+                           for el in elements}
         chempot_ranges = collections.defaultdict(list)
-        for ufacet in ConvexHull(all_chempots).vertices:
+        vertices = [[i for i in range(len(self._pd.elements))]]
+        if len(all_chempots) > len(self._pd.elements):
+            vertices = ConvexHull(all_chempots).vertices
+        for ufacet in vertices:
             for combi in itertools.combinations(ufacet, 2):
                 data1 = facets[combi[0]]
                 data2 = facets[combi[1]]
@@ -360,3 +354,90 @@ class PDAnalyzer(object):
                         chempot_ranges[entry].append(sim)
 
         return chempot_ranges
+
+    def getmu_vertices_stability_phase(self, target_comp, dep_elt):
+        """
+        returns a set of chemical potentials correspoding to the vertices of the simplex
+        in the chemical potential phase diagram.
+        The simplex is buit using all elements in the target_composition except dep_elt.
+        The chemical potential of dep_elt is computed from the target composition energy.
+        This method is useful to get the limiting conditions for
+        defects computations for instance.
+
+        Args:
+            target_comp: A Composition object
+            dep_elt: the element for which the chemical potential is computed from the energy of
+            the stable phase at the target composition
+
+        Returns:
+             [{Element:mu}]: An array of conditions on simplex vertices for which each element has a chemical potential
+             set to a given value. "absolute" values (i.e., not referenced to element energies)
+        """
+        muref = np.array([self._pd.el_refs[e].energy_per_atom for e in self._pd.elements if e != dep_elt])
+        chempot_ranges = self.get_chempot_range_map([e for e in self._pd.elements if e != dep_elt])
+
+        for e in self._pd.elements:
+            if not e in target_comp.elements:
+                target_comp = target_comp+Composition({e: 0.0})
+        coeff = [-target_comp[e] for e in self._pd.elements if e != dep_elt]
+        for e in chempot_ranges.keys():
+            if e.composition.reduced_composition == target_comp.reduced_composition:
+                multiplicator = e.composition[dep_elt]/target_comp[dep_elt]
+                ef = e.energy/multiplicator
+                all_coords = []
+                for s in chempot_ranges[e]:
+                    for v in s._coords:
+                        elts = [e for e in self._pd.elements if e != dep_elt]
+                        res = {}
+                        for i in range(len(elts)):
+                            res[elts[i]] = v[i] + muref[i]
+                        res[dep_elt]=(np.dot(v+muref,coeff)+ef)/target_comp[dep_elt]
+                        all_coords.append(res)
+        return all_coords
+
+    def getmu_range_stability_phase(self, target_comp, open_elt):
+        """
+        returns a set of chemical potentials correspoding to the max and min chemical potential
+        of the open element for a given composition. It is quite common to have for instance a ternary oxide
+        (e.g., ABO3) for which you want to know what are the A and B chemical potential leading to the
+        highest and lowest oxygen chemical potential (reducing and oxidizing conditions). This is useful
+        for defect computations.
+
+        Args:
+            target_comp: A Composition object
+            open_elt: Element that you want to constrain to be max or min
+
+        Returns:
+             {Element:(mu_min,mu_max)}: Chemical potentials are given in
+             "absolute" values (i.e., not referenced to 0)
+        """
+        muref = np.array([self._pd.el_refs[e].energy_per_atom for e in self._pd.elements if e != open_elt])
+        chempot_ranges = self.get_chempot_range_map([e for e in self._pd.elements if e != open_elt])
+        for e in self._pd.elements:
+            if not e in target_comp.elements:
+                target_comp = target_comp+Composition({e: 0.0})
+        coeff = [-target_comp[e] for e in self._pd.elements if e != open_elt]
+        max_open = -100000000
+        min_open = 1000000000
+        max_mus = None
+        min_mus = None
+        for e in chempot_ranges.keys():
+            if e.composition.reduced_composition == target_comp.reduced_composition:
+                multiplicator = e.composition[open_elt]/target_comp[open_elt]
+                ef = e.energy/multiplicator
+                all_coords = []
+                for s in chempot_ranges[e]:
+                    for v in s._coords:
+                        all_coords.append(v)
+                        if (np.dot(v+muref,coeff)+ef)/target_comp[open_elt] > max_open:
+                            max_open = (np.dot(v+muref,coeff)+ef)/target_comp[open_elt]
+                            max_mus = v
+                        if (np.dot(v+muref, coeff)+ef)/target_comp[open_elt] < min_open:
+                            min_open = (np.dot(v+muref, coeff)+ef)/target_comp[open_elt]
+                            min_mus = v
+        elts = [e for e in self._pd.elements if e != open_elt]
+        res = {}
+        for i in range(len(elts)):
+            res[elts[i]] = (min_mus[i]+muref[i], max_mus[i]+muref[i])
+        res[open_elt] = (min_open, max_open)
+        return res
