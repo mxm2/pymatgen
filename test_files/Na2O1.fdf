@@ -1,0 +1,40 @@
+SystemName Na2O1
+SystemLabel Na2O1
+NumberOfAtoms 3
+NumberOfSpecies 2
+%block ChemicalSpeciesLabel
+1  11 Na
+2  8 O
+%endblock ChemicalSpeciesLabel
+
+LatticeConstant 1.0 Ang
+%block LatticeVectors
+-2.797544 -2.797544 0.000000
+-2.797544 0.000000 -2.797544
+-0.000000 -2.797544 -2.797544
+%endblock LatticeVectors
+
+AtomicCoordinatesFormat  Ang
+%block AtomicCoordinatesAndAtomicSpecies
+0.250000 0.250000 0.250000 1
+0.000000 0.000000 0.000000 2
+0.750000 0.750000 0.750000 2
+%endblock AtomicCoordinatesAndAtomicSpecies
+
+ElectronicTemperature 0.2 eV
+OccupationFunction FD
+
+%block DM.initspin
+1    0.6
+2    0.6
+3    0.6
+%endblock DM.initspin
+
+%block kgrid_Monkhorst_pack
+8 0 0 -0.5
+0 8 0 -0.5
+0 0 8 -0.5
+%endblock kgrid_Monkhorst_pack
+
+MeshCutoff		125.0 Ry
+WriteCoorXmol		yes

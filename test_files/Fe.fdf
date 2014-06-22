@@ -1,0 +1,40 @@
+SystemName Fe1
+SystemLabel Fe1
+
+NumberOfAtoms 1
+NumberOfSpecies 1
+
+%block ChemicalSpeciesLabel
+1 26 Fe
+%endblock ChemicalSpeciesLabel
+LatticeConstant 1 Ang
+
+%block LatticeParameters
+4.9662 4.9662 12.0000    90.0000 90.0000 120.0000
+%endblock LatticeParameters
+AtomicCoordinatesFormat  Fractional
+%block AtomicCoordinatesAndAtomicSpecies
+0.50000 0.50000 0.00000    1
+%endblock AtomicCoordinatesAndAtomicSpecies
+ElectronicTemperature 0.2 eV
+
+OccupationFunction FD
+
+SpinPolarised .true.
+%block DM.initspin
+1    5.0
+%endblock DM.initspin
+
+%block kgrid_Monkhorst_pack
+13 0 0 0
+0 13 0 0
+0 0 6 0
+%endblock kgrid_Monkhorst_pack
+
+MD.NumCGsteps       100
+PAO.EnergyShift     65 meV
+MeshCutoff          300 Ry
+MaxSCFIterations    1000
+
+LongOutput .true.
+WriteForces .true.
