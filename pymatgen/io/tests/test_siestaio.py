@@ -21,7 +21,7 @@ from pymatgen.core import Element, Molecule, Composition, Structure, Lattice
 from pymatgen.io.siestaio import SiestaInput
 
 test_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..",
-                        'test_files', "fdf")
+                        'test_files')
 
 
 class SiestaInputTest(unittest.TestCase):
