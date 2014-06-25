@@ -9,7 +9,7 @@ output files.
 from __future__ import division
 
 __author__ = "Artem Prihodko"
-__version__ = "0.1"
+__version__ = "0.2"
 __maintainer__ = "Artem Prihodko"
 __email__ = "artemcpp@gmail.com"
 __date__ = "Jun, 2014"
@@ -26,41 +26,52 @@ class SiestaInput(object):
     Args:
         structure: input structure.
 
-        label: system label from the FDF file.
+        name: descriptive name of the system.
 
         spin_list: a list of spins for each element of the structure in the correct order.
     """
 
     # Pre-defined regex patterns
-	params_pattern = re.compile('^([A-Za-z]*) (.*)\n', re.M)
-	block_pattern = re.compile('^%block (?P<n>[A-Za-z_.]*)(.*)%endblock *(?P=n)',
-									re.DOTALL | re.M)
+	params_pattern = re.compile('^\s*([\w.]+)\s+(.+)', re.M | re.I)
+	block_pattern = re.compile('^\s*%block\s+(?P<n>[\w.]*)(.*)%endblock *(?P=n)',
+									re.DOTALL | re.M | re.I)
 
 	ScaleConstant = {'Ang': 1, 'Bohr': 0.5291772083}
 
 
-	def __init__(self, structure, label = None, spin_list = None):
+	def __init__(self, structure, name = None, spin_list = None):
 		self._structure = structure
-		self._label = label
+		self._name = name
 		self._spin_list = spin_list
 
 
 	@property
 	def structure(self):
-	    return self._structure
+		"""
+		Returns structure associated with this SiestaInput
+		"""
+		return self._structure
 	
 	@property
-	def label(self):
-	    return self._label
+	def name(self):
+		"""
+		Returns name of the system.
+		"""
+		return self._name
 
 	@property
 	def spin_list(self):
-	    return self._spin_list
+		"""
+		Returns a list with spin values for each element.
+		"""
+		return self._spin_list
 
 
 	@staticmethod
 	def MakeTable(arr, ncolumns):
-		'Reshaping raw data in a table with n columns.'
+		"""
+		Reshaping raw data in a table with n columns.
+		"""
 		if arr.size % ncolumns == 0:
 			return arr.reshape(arr.size / ncolumns, ncolumns)
 		else:
@@ -78,9 +89,10 @@ class SiestaInput(object):
             SiestaInput object
 		"""
 
+		#TODO: Reading fdf ignoring - or _ like: LatticeConstant lattice_constant
+
 		params = SiestaInput.params_pattern.findall(contents)
 		blocks = SiestaInput.block_pattern.findall(contents)
-
 
 		# Making Dictionary from raw list, deliting all \n entries
 		block_dict = {blocks[i][0]: blocks[i][1].strip().replace('\n', ' ') for i in range(0, len(blocks))}
@@ -137,7 +149,7 @@ class SiestaInput(object):
 			spin_list = [float(spin) for spin in spin_list]
 
 
-		return SiestaInput(struct, param_dict["SystemLabel"], spin_list)
+		return SiestaInput(struct, param_dict["SystemName"], spin_list)
 
 	@staticmethod
 	def from_file(filename):
@@ -152,3 +164,74 @@ class SiestaInput(object):
         """
 		with open(filename) as f:
 			return SiestaInput.FromString(f.read())
+
+
+class SiestaOutput(object):
+	"""
+	An object representing Siesta output file.
+
+	Args:
+		filename: path to Siesta output file.
+	"""
+
+	def __init__(self, filename):
+		self._filename = filename
+		self.parse(filename)
+
+
+	def parse(self, filename):
+		"""
+		Parsing function for standard Siesta output.
+
+		Args:
+			filename: path to Siesta output file.
+		"""
+		def _find(pattern, str):
+			match = pattern.search(str)
+			if match:
+				return match.group(1)
+			else:
+				return None
+
+		ver_pattern = re.compile("Siesta Version\s*:\s*(.*)", re.I)
+		arc_pattern = re.compile("Architecture\s*:\s*(.*)", re.I | re.M)
+		nspecies_pattern = re.compile("Number of Atomic Species\s*=\s*(\d+)", re.I | re.M)
+		stype_pattern = re.compile("System type\s*=\s*(\w+)", re.I | re.M)
+		num_kpts_pattern = re.compile("Number of k-points\s*=\s*(\d+)", re.I | re.M)
+		mesh_cutoff_pattern = re.compile("Mesh cutoff \(required, used\)\s*=\s*(.+)Ry", re.I | re.M)
+
+		with open(filename) as f:
+			contents = f.read()
+
+			self._ver = _find(ver_pattern, contents)
+			self._arc = _find(arc_pattern, contents)
+			self._nspecies = int(_find(nspecies_pattern, contents))
+			self._sys_type = _find(stype_pattern, contents)
+			self._num_kpts = int(_find(num_kpts_pattern, contents))
+			self._mesh_cutoff = [float(mk) for mk in _find(mesh_cutoff_pattern, contents).split()]
+
+
+
+	@property
+	def ver(self):
+	    return self._ver
+
+	@property
+	def arc(self):
+	    return self._arc
+
+	@property
+	def nspecies(self):
+	    return self._nspecies
+
+	@property
+	def sys_type(self):
+	    return self._sys_type
+
+	@property
+	def num_kpts(self):
+	    return self._num_kpts
+
+	@property
+	def mesh_cutoff(self):
+	    return self._mesh_cutoff
