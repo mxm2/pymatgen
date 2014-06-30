@@ -35,6 +35,7 @@ class SiestaInputTest(unittest.TestCase):
 
 		self.assertAlmostEqual(Fe.structure.volume, 256.307, places = 3)
 		self.assertEqual(Fe.name, 'Fe1')
+
 		self.assertEqual(Fe.spin_list, [5.0])
 
 		self.assertAlmostEqual(Na2O.structure.volume, 43.789, places = 3)
@@ -46,18 +47,44 @@ class SiestaOutputTest(unittest.TestCase):
 		pass
 
 	def test_props(self):
-		feout = SiestaOutput(os.path.join(test_dir, 'Fe_output'))
+		fe_out = SiestaOutput(os.path.join(test_dir, 'Fe_output'))
 
-		self.assertEqual(feout.ver, 'siesta-3.2-pl-4')
-		self.assertEqual(feout.arc, 'i686-pc-linux-gnu--unknown')
-		self.assertEqual(feout.nspecies, 1)
-		self.assertEqual(feout.sys_type, 'bulk')
-		self.assertEqual(feout.num_kpts, 560)
-		self.assertEqual(feout.mesh_cutoff[0], 300)
-		self.assertEqual(feout.mesh_cutoff[1], 400.750) #in Ry
+		self.assertEqual(fe_out.ver, 'siesta-3.2-pl-4')
+		self.assertEqual(fe_out.arc, 'i686-pc-linux-gnu--unknown')
+		self.assertEqual(fe_out.nspecies, 1)
+		self.assertEqual(fe_out.sys_type, 'bulk')
+		self.assertEqual(fe_out.num_atoms, 1000)
+		self.assertEqual(fe_out.num_kpts, 560)
+		self.assertEqual(fe_out.mesh_cutoff[0], 300)
+		self.assertEqual(fe_out.mesh_cutoff[1], 400.750) #in Ry
+		self.assertEqual(fe_out.total_energy, -567.924870)
+		self.assertEqual(fe_out.charge, 8)
+		# # self.assertEqual(fe_out.spin_multiplicity, 8)
+		self.assertEqual(fe_out.num_basis_func, 5000)
+		self.assertEqual(fe_out.pressure_solid, 0.00209287)
+		self.assertEqual(fe_out.pressure_mol, 0.00209287)
+		self.assertEqual(fe_out.cell_vol, 11.196570)
+		self.assertEqual(fe_out.atomic_force, 0.000005)
 
 
+		al2o_out = SiestaOutput(os.path.join(test_dir, 'Al2O1_output'))
 
+		self.assertEqual(al2o_out.ver, 'siesta-3.2-pl-4')
+		self.assertEqual(al2o_out.arc, 'i686-pc-linux-gnu--unknown')
+		self.assertEqual(al2o_out.nspecies, 2)
+		self.assertEqual(al2o_out.sys_type, 'bulk')
+		self.assertEqual(al2o_out.num_atoms, 648)
+		self.assertEqual(al2o_out.num_kpts, 256)
+		self.assertEqual(al2o_out.mesh_cutoff[0], 125.000)
+		self.assertEqual(al2o_out.mesh_cutoff[1], 147.436) #in Ry
+		self.assertEqual(al2o_out.total_energy, -259.220541)
+		self.assertEqual(al2o_out.charge, False)
+		# # self.assertEqal2ol(fe_out.spin_multiplicity, 8)
+		self.assertEqual(al2o_out.num_basis_func, 3240)
+		self.assertEqual(al2o_out.pressure_solid, 0.06068175)
+		self.assertEqual(al2o_out.pressure_mol, 0.00347506)
+		self.assertEqual(al2o_out.cell_vol, 46.089491)
+		self.assertEqual(al2o_out.atomic_force, 797.392060)
 
 
 if __name__ == "__main__":
