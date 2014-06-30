@@ -31,9 +31,9 @@ class SiestaInput(object):
         spin_list: a list of spins for each element of the structure in the correct order.
     """
 
-    # Pre-defined regex patterns
-	params_pattern = re.compile('^\s*([\w.]+)\s+(.+)', re.M | re.I)
-	block_pattern = re.compile('^\s*%block\s+(?P<n>[\w.]*)(.*)%endblock *(?P=n)',
+    # Pre-defined regex patts
+	params_patt = re.compile('^\s*([\w.]+)\s+(.+)', re.M | re.I)
+	block_patt = re.compile('^\s*%block\s+(?P<n>[\w.]*)(.*)%endblock *(?P=n)',
 									re.DOTALL | re.M | re.I)
 
 	ScaleConstant = {'Ang': 1, 'Bohr': 0.5291772083}
@@ -91,8 +91,8 @@ class SiestaInput(object):
 
 		#TODO: Reading fdf ignoring - or _ like: LatticeConstant lattice_constant
 
-		params = SiestaInput.params_pattern.findall(contents)
-		blocks = SiestaInput.block_pattern.findall(contents)
+		params = SiestaInput.params_patt.findall(contents)
+		blocks = SiestaInput.block_patt.findall(contents)
 
 		# Making Dictionary from raw list, deliting all \n entries
 		block_dict = {blocks[i][0]: blocks[i][1].strip().replace('\n', ' ') for i in range(0, len(blocks))}
@@ -172,6 +172,66 @@ class SiestaOutput(object):
 
 	Args:
 		filename: path to Siesta output file.
+
+	Attributes:
+
+		.. attribute:: ver
+
+			Version of Siesta used for run.
+
+		.. attribute:: arc
+
+			Architecture. 
+
+		.. attribute:: nspecies
+
+			Number of Species.
+
+		.. attribute:: sys_type
+
+			Type of th system (bulk, surface, single atom)
+
+		.. attribute:: num_atoms
+
+			Number of atomsin the run.
+
+		.. attribute:: num_kpts
+
+			Number of k-points in run
+
+		.. attribute:: mesh_cutoff
+
+			List of 2 elements:
+		 		First: required value of MeshCutoff (Ry)
+		 		Second: used value (Ry)
+
+		.. attribute:: total_energy
+
+			Total energy of the system in eV
+
+		.. attribute:: charge
+
+			Charge for structure.
+
+		.. attribute:: num_basis_func
+
+			Number of basis functions in the run.
+
+		.. attribute:: pressure_solid
+
+			Static pressure for solid in Ry/Bohr**3.
+
+		.. attribute:: pressure_mol
+
+			Static pressure for molecule Ry/Bohr**3.
+
+		.. attribute:: cell_vol
+
+			Cell volume in Ang**3.
+
+		.. attribute:: atomic_force
+
+			Max atomic force in eV/Ang.
 	"""
 
 	def __init__(self, filename):
@@ -186,52 +246,95 @@ class SiestaOutput(object):
 		Args:
 			filename: path to Siesta output file.
 		"""
-		def _find(pattern, str):
+		def find_by_pattern(pattern, str):
 			match = pattern.search(str)
 			if match:
 				return match.group(1)
 			else:
 				return None
 
-		ver_pattern = re.compile("Siesta Version\s*:\s*(.*)", re.I)
-		arc_pattern = re.compile("Architecture\s*:\s*(.*)", re.I | re.M)
-		nspecies_pattern = re.compile("Number of Atomic Species\s*=\s*(\d+)", re.I | re.M)
-		stype_pattern = re.compile("System type\s*=\s*(\w+)", re.I | re.M)
-		num_kpts_pattern = re.compile("Number of k-points\s*=\s*(\d+)", re.I | re.M)
-		mesh_cutoff_pattern = re.compile("Mesh cutoff \(required, used\)\s*=\s*(.+)Ry", re.I | re.M)
+		def cut(content, begin_str, end_str):
+			pos_begin = content.find(begin_str)
+			pos_end = content.find(end_str, pos_begin)
+			if pos_begin != -1 and pos_end > pos_begin:
+				return content[pos_begin:pos_end]
+			else:
+				return ''
+
+		ver_patt = re.compile("Siesta Version\s*:\s*(.*)", re.I)
+		arc_patt = re.compile("Architecture\s*:\s*(.*)", re.I | re.M)
+		nspecies_patt = re.compile("Number of Atomic Species\s*=\s*(\d+)", re.I | re.M)
+		stype_patt = re.compile("System type\s*=\s*(\w+)", re.I | re.M)
+		natom_patt = re.compile("superc: Number of atoms, orbitals, and projectors\s*:\s*(\d+)\s+", re.I | re.M)
+		num_kpts_patt = re.compile("Number of k-points\s*=\s*(\d+)", re.I | re.M)
+		mesh_cutoff_patt = re.compile("Mesh cutoff \(required, used\)\s*=\s*(.+)Ry", re.I | re.M)
+		f_energy_patt = re.compile("Final energy (eV):", re.I | re.M)
+		qtot_patt = re.compile("Qtot\s*=\s*([\d.-]+)")
+		basisfun_patt = re.compile("nzeta=(\d+)\s+polorb=(\d+)")
+		press_patt = re.compile("([\d.]+)\s*([\d.]+)\s*Ry/Bohr\*\*3")
+		cell_vol_patt = re.compile("Cell volume\s*=\s*([\d.]+)")
+		maxforce_patt = re.compile("Max\s*([\d.-]+)")
+
+		s_line_patt = re.compile(r"siesta:\s*(.+)\s*=\s*([\d.-]+)\s*")
 
 		with open(filename) as f:
-			contents = f.read()
+			content = f.read()
 
-			self._ver = _find(ver_pattern, contents)
-			self._arc = _find(arc_pattern, contents)
-			self._nspecies = int(_find(nspecies_pattern, contents))
-			self._sys_type = _find(stype_pattern, contents)
-			self._num_kpts = int(_find(num_kpts_pattern, contents))
-			self._mesh_cutoff = [float(mk) for mk in _find(mesh_cutoff_pattern, contents).split()]
+			self.ver = find_by_pattern(ver_patt, content)
+			self.arc = find_by_pattern(arc_patt, content)
+			self.nspecies = int(find_by_pattern(nspecies_patt, content))
+			self.sys_type = find_by_pattern(stype_patt, content)
+			self.num_atoms = int(find_by_pattern(natom_patt, content))
+			self.num_kpts = int(find_by_pattern(num_kpts_patt, content))
+			self.mesh_cutoff = [float(mk) for mk in find_by_pattern(mesh_cutoff_patt, content).split()]
 
+			self.total_energy = False
+			self.charge = False
+			self.pressure_solid = False
+			self.pressure_mol = False
+			self.num_basis_func = -1
+			self.cell_vol = -1
 
+			#Parse Final Energy
+			fe_block = cut(content, 'Final energy (eV):', 'siesta: Stress tensor')
+			en_list = s_line_patt.findall(fe_block)
+			if en_list:
+				final_energy = {}
+				for en_type, value in en_list:
+					final_energy[en_type.strip()] = float(value)
+				if 'Total' in final_energy:
+					self.total_energy = final_energy['Total']
+			
+			#charge (in mulliken: spin up + spin down)
+			up_down_charge = qtot_patt.findall(content)
+			if len(up_down_charge) == 2:
+				self.charge = float(up_down_charge[0]) + float(up_down_charge[1])
 
-	@property
-	def ver(self):
-	    return self._ver
+			#number of basis functions
+			basis_block = cut(content, '<basis_specs>', '</basis_specs>')
+			basis_data = basisfun_patt.findall(basis_block)
+			if basis_data:
+				nfunc = 0
+				for nzeta, polarb in basis_data:
+					nfunc = nfunc + int(nzeta) + int(polarb)
+			if nfunc:
+				self.num_basis_func = nfunc * self.num_atoms
 
-	@property
-	def arc(self):
-	    return self._arc
+			#pressure in Ry/Bohr**3
+			pressure = {}
+			press_block = cut(content, 'Pressure (static):', '(Free)E+ p_basis*V_orbitals')
+			press_data = press_patt.search(press_block)
+			if press_data:
+				self.pressure_solid = float(press_data.group(1))
+				self.pressure_mol = float(press_data.group(2))
 
-	@property
-	def nspecies(self):
-	    return self._nspecies
+			#cell volume in Ang**3
+			cell_vol = cell_vol_patt.search(content)
+			if cell_vol:
+				self.cell_vol = float(cell_vol.group(1))
 
-	@property
-	def sys_type(self):
-	    return self._sys_type
-
-	@property
-	def num_kpts(self):
-	    return self._num_kpts
-
-	@property
-	def mesh_cutoff(self):
-	    return self._mesh_cutoff
+			#max atomic force in eV/Ang
+			aforces_block = cut(content, 'Atomic forces (eV/Ang):', 'Stress-tensor-Voigt')
+			aforces_data = maxforce_patt.findall(aforces_block)
+			if aforces_data:
+				self.atomic_force = float(aforces_data[-1])
