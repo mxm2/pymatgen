@@ -1,0 +1,63 @@
+/home/mxm/tmp/Cu_bulk.fdf ---------
+
+Lattice Matrix:
+[ 0.5  0.5  0.   0.   0.5  0.5  0.5  0.   0.5]
+Siesta input parameters:
+{'': '0  0  8   0.0', 'UseSaveData': 'T', 'WriteMullikenPop': '1', 'LatticeConstant': '3.61 Ang', 'MeshCutoff': '200. Ry', 'NumberOfSpecies': '1', 'WriteForces': 'T', 'WriteCoorStep': 'T', 'SystemName': 'Cu_bulk', 'SystemLabel': 'Cu_bulk', 'AtomicCoordinatesFormat': 'Ang', 'NumberOfAtoms': '1', 'SolutionMethod': 'Diagon', 'ElectronicTemperature': '200 meV      # Temp. for Fermi smearing', 'MaxSCFIterations': '200'}
+OK1
+['Cu'] 
+[[ 0.  0.  0.  1.]]
+---------------
+{'lattice': {'a': 0.7071067811865476, 'gamma': 60.00000000000001, 'c': 0.7071067811865476, 'b': 0.7071067811865476, 'matrix': [[0.5, 0.5, 0.0], [0.0, 0.5, 0.5], [0.5, 0.0, 0.5]], 'volume': 0.25, 'alpha': 60.00000000000001, 'beta': 60.00000000000001}, 'sites': [{'properties': {}, 'abc': [0.0, 0.0, 0.0], 'xyz': [0.0, 0.0, 0.0], 'species': [{'occu': 1, 'element': 'Cu'}], 'label': 'Cu'}], '@class': 'Structure', '@module': 'pymatgen.core.structure'} 
+---------------
+
+/home/mxm/tmp/Fe.fdf ---------
+
+Lattice Matrix:
+[ 0.5  0.5  0.5  0.5 -0.5  0.5  0.5  0.5 -0.5]
+Siesta input parameters:
+{'': '0.000000000000    0.000000000000    0.000000000000  1', 'WriteMullikenPop': '1', 'LatticeConstant': '2.87 Ang', 'MeshCutoff': '150. Ry        # Mesh cutoff. real space mesh', 'NumberOfSpecies': '1', 'KgridCutoff': '15. Ang', 'SystemName': 'bcc Fe ferro GGA   # Descriptive name of the system', 'SystemLabel': 'Fe           # Short name for naming files', 'AtomicCoordinatesFormat': 'Fractional', 'NumberOfAtoms': '1', 'SolutionMethod': 'diagon        # OrderN or Diagon', 'ElectronicTemperature': '25 meV       # Temp. for Fermi smearing', 'MaxSCFIterations': '40           # Maximum number of SCF iter', 'SpinPolarized': 'true          # Logical parameters are: yes or no'}
+OK1
+['Fe'] 
+[[ 0.  0.  0.  1.]]
+---------------
+{'lattice': {'a': 0.8660254037844386, 'gamma': 70.52877936550931, 'c': 0.8660254037844386, 'b': 0.8660254037844386, 'matrix': [[0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]], 'volume': 0.5, 'alpha': 109.47122063449069, 'beta': 70.52877936550931}, 'sites': [{'properties': {}, 'abc': [0.0, 0.0, 0.0], 'xyz': [0.0, 0.0, 0.0], 'species': [{'occu': 1, 'element': 'Fe'}], 'label': 'Fe'}], '@class': 'Structure', '@module': 'pymatgen.core.structure'} 
+---------------
+
+/home/mxm/tmp/graphene.fdf ---------
+
+Lattice Matrix:
+[ 14.           0.           0.           0.           3.           0.           0.
+   0.          10.39230485]
+Siesta input parameters:
+{'': '0   0  10  0.5', 'C': '2                    # Species label, number of l-shells', 'LatticeConstant': '1.433600 Ang', 'MeshCutoff': '100.0 Ry', 'NumberOfSpecies': '1', 'SystemName': 'graphene', 'SystemLabel': 'graphene', 'AtomicCoordinatesFormat': 'ScaledCartesian', 'NumberOfAtoms': '24', 'SolutionMethod': 'transiesta', 'MaxSCFIterations': '500'}
+OK1
+['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C'] 
+[[  0.           1.4336       0.           1.        ]
+ [  0.           2.8672       0.           1.        ]
+ [  0.          -0.7168       1.24153402   1.        ]
+ [  0.           0.7168       1.24153402   1.        ]
+ [  0.           1.4336       2.48306804   1.        ]
+ [  0.           2.8672       2.48306804   1.        ]
+ [  0.          -0.7168       3.72460206   1.        ]
+ [  0.           0.7168       3.72460206   1.        ]
+ [  0.           1.4336       4.96613608   1.        ]
+ [  0.           2.8672       4.96613608   1.        ]
+ [  0.          -0.7168       6.2076701    1.        ]
+ [  0.           0.7168       6.2076701    1.        ]
+ [  0.           1.4336       7.44920412   1.        ]
+ [  0.           2.8672       7.44920412   1.        ]
+ [  0.          -0.7168       8.69073813   1.        ]
+ [  0.           0.7168       8.69073813   1.        ]
+ [  0.           1.4336       9.93227215   1.        ]
+ [  0.           2.8672       9.93227215   1.        ]
+ [  0.          -0.7168      11.17380617   1.        ]
+ [  0.           0.7168      11.17380617   1.        ]
+ [  0.           1.4336      12.41534019   1.        ]
+ [  0.           2.8672      12.41534019   1.        ]
+ [  0.          -0.7168      13.65687421   1.        ]
+ [  0.           0.7168      13.65687421   1.        ]]
+---------------
+{'lattice': {'a': 14.0, 'gamma': 90.0, 'c': 10.392304848, 'b': 3.0, 'matrix': [[14.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 10.392304848]], 'volume': 436.476803616, 'alpha': 90.0, 'beta': 90.0}, 'sites': [{'properties': {}, 'abc': [0.0, 1.4336, 0.0], 'xyz': [0.0, 4.3008, 0.0], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 2.8672, 0.0], 'xyz': [0.0, 8.6016, 0.0], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, -0.7168, 1.2415340191744], 'xyz': [0.0, -2.1504, 12.902400006423042], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 0.7168, 1.2415340191744], 'xyz': [0.0, 2.1504, 12.902400006423042], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 1.4336, 2.4830680383488], 'xyz': [0.0, 4.3008, 25.804800012846083], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 2.8672, 2.4830680383488], 'xyz': [0.0, 8.6016, 25.804800012846083], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, -0.7168, 3.7246020575232], 'xyz': [0.0, -2.1504, 38.70720001926912], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 0.7168, 3.7246020575232], 'xyz': [0.0, 2.1504, 38.70720001926912], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 1.4336, 4.9661360766976], 'xyz': [0.0, 4.3008, 51.60960002569217], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 2.8672, 4.9661360766976], 'xyz': [0.0, 8.6016, 51.60960002569217], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, -0.7168, 6.2076700958719995], 'xyz': [0.0, -2.1504, 64.51200003211521], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 0.7168, 6.2076700958719995], 'xyz': [0.0, 2.1504, 64.51200003211521], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 1.4336, 7.4492041150464], 'xyz': [0.0, 4.3008, 77.41440003853825], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 2.8672, 7.4492041150464], 'xyz': [0.0, 8.6016, 77.41440003853825], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, -0.7168, 8.6907381342208], 'xyz': [0.0, -2.1504, 90.3168000449613], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 0.7168, 8.6907381342208], 'xyz': [0.0, 2.1504, 90.3168000449613], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 1.4336, 9.9322721533952], 'xyz': [0.0, 4.3008, 103.21920005138433], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 2.8672, 9.9322721533952], 'xyz': [0.0, 8.6016, 103.21920005138433], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, -0.7168, 11.1738061725696], 'xyz': [0.0, -2.1504, 116.12160005780738], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 0.7168, 11.1738061725696], 'xyz': [0.0, 2.1504, 116.12160005780738], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 1.4336, 12.415340191743999], 'xyz': [0.0, 4.3008, 129.02400006423042], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 2.8672, 12.415340191743999], 'xyz': [0.0, 8.6016, 129.02400006423042], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, -0.7168, 13.6568742109184], 'xyz': [0.0, -2.1504, 141.92640007065347], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}, {'properties': {}, 'abc': [0.0, 0.7168, 13.6568742109184], 'xyz': [0.0, 2.1504, 141.92640007065347], 'species': [{'occu': 1, 'element': 'C'}], 'label': 'C'}], '@class': 'Structure', '@module': 'pymatgen.core.structure'} 
+---------------
+
