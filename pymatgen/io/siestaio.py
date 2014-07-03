@@ -193,11 +193,11 @@ class SiestaOutput(object):
 
 		.. attribute:: num_atoms
 
-			Number of atomsin the run.
+			Number of atoms in the run
 
 		.. attribute:: num_kpts
 
-			Number of k-points in run
+			Number of k-points in the run
 
 		.. attribute:: mesh_cutoff
 
@@ -233,6 +233,17 @@ class SiestaOutput(object):
 
 			Max atomic force in eV/Ang.
 	"""
+
+	#TODO Total Spin
+	#siesta: Total spin polarization (Qup-Qdown) =    2.669745
+	#name: total
+	#also var: spin_data Spin.Up Spin.Down, diff = Spin.Up - Spin.Down
+	#Look for vasp refs
+	#http://pymatgen.org/pymatgen.io.vaspio.html?highlight=spin#pymatgen.io.vaspio.vasp_output.VolumetricData.spin_data 
+	#Qtot forMulliken
+	#
+	#
+	#Initial structure: p. 955-966 (Fe_output)
 
 	def __init__(self, filename):
 		self._filename = filename
@@ -306,11 +317,19 @@ class SiestaOutput(object):
 					self.total_energy = final_energy['Total']
 			
 			#charge (in mulliken: spin up + spin down)
+
+			########################33\
+			# No diff
+
 			up_down_charge = qtot_patt.findall(content)
 			if len(up_down_charge) == 2:
 				self.charge = float(up_down_charge[0]) + float(up_down_charge[1])
 
 			#number of basis functions
+			#TODO:
+			#for number of species
+			#NumberOfSpecies
+			#use AtomicCoordinatesAndAtomicSpecies
 			basis_block = cut(content, '<basis_specs>', '</basis_specs>')
 			basis_data = basisfun_patt.findall(basis_block)
 			if basis_data:
