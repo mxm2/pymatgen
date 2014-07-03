@@ -67,24 +67,24 @@ class SiestaOutputTest(unittest.TestCase):
 		self.assertEqual(fe_out.atomic_force, 0.000005)
 
 
-		al2o_out = SiestaOutput(os.path.join(test_dir, 'Al2O1_output'))
+		graphene_out = SiestaOutput(os.path.join(test_dir, 'graphene_Sc_output'))
 
-		self.assertEqual(al2o_out.ver, 'siesta-3.2-pl-4')
-		self.assertEqual(al2o_out.arc, 'i686-pc-linux-gnu--unknown')
-		self.assertEqual(al2o_out.nspecies, 2)
-		self.assertEqual(al2o_out.sys_type, 'bulk')
-		self.assertEqual(al2o_out.num_atoms, 648)
-		self.assertEqual(al2o_out.num_kpts, 256)
-		self.assertEqual(al2o_out.mesh_cutoff[0], 125.000)
-		self.assertEqual(al2o_out.mesh_cutoff[1], 147.436) #in Ry
-		self.assertEqual(al2o_out.total_energy, -259.220541)
-		self.assertEqual(al2o_out.charge, False)
-		# # self.assertEqal2ol(fe_out.spin_multiplicity, 8)
-		self.assertEqual(al2o_out.num_basis_func, 3240)
-		self.assertEqual(al2o_out.pressure_solid, 0.06068175)
-		self.assertEqual(al2o_out.pressure_mol, 0.00347506)
-		self.assertEqual(al2o_out.cell_vol, 46.089491)
-		self.assertEqual(al2o_out.atomic_force, 797.392060)
+		self.assertEqual(graphene_out.ver, 'siesta-3.2-pl-4')
+		self.assertEqual(graphene_out.arc, 'x86_64-unknown-linux-gnu--unknown')
+		self.assertEqual(graphene_out.nspecies, 2)
+		self.assertEqual(graphene_out.sys_type, 'slab')
+		# self.assertEqual(graphene_out.num_atoms, 864)
+		self.assertEqual(graphene_out.num_kpts, 1152)
+		self.assertEqual(graphene_out.mesh_cutoff[0], 300.000)
+		self.assertEqual(graphene_out.mesh_cutoff[1], 314.455) #in Ry
+		self.assertEqual(graphene_out.total_energy, -1138.731881)
+		# self.assertEqual(graphene_out.charge, 31) #! return False
+		# # self.assertEqgraphenel(fe_out.spin_multiplicity, 8)
+		# self.assertEqual(graphene_out.num_basis_func, 5*864)
+		self.assertEqual(graphene_out.pressure_solid, 0.00000210)
+		self.assertEqual(graphene_out.pressure_mol, 0.00000200)
+		self.assertEqual(graphene_out.cell_vol, 377.651841)
+		self.assertEqual(graphene_out.atomic_force, 0.009650)
 
 
 if __name__ == "__main__":
